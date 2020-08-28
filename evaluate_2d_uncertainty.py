@@ -992,7 +992,7 @@ def plot_histo_multivariate_KDE(dets,scene,col,vals,min_val=None,max_val=None):
         x_list = np.swapaxes(x_list,1,0)
         #hist_range = (min_val,max_val) 
 
-        """
+        
         myPDF,axes = fastKDE.pdf(data_arr[0,:],data_arr[1,:])
         #Extract the axes from the axis list
         v1,v2 = axes
@@ -1001,18 +1001,20 @@ def plot_histo_multivariate_KDE(dets,scene,col,vals,min_val=None,max_val=None):
         #(0.1, -300) Comparitively, the y axis range should be tiny and the x axis range
         #should be large
         PP.contour(v1,v2,myPDF)
-        PP.show()
+        #PP.show()
 
         df = pd.DataFrame({'x_c': data_arr[0, :], 'y_c': data_arr[1, :]})
         sns.jointplot(x='x_c',y='y_c', data=df, kind='kde')
         scipy_kernel = gaussian_kde(data_arr,bw_method=.035)  # kernel function centered on each datapoint
         pdf = scipy_kernel.evaluate(x_list)  # sum all functions together and normalize to obtain pdf
         plt.plot(x_list[0,:],pdf)
-        plt.show()
-        """
+        #plt.show()
+        
 
+        x_mesh = np.meshgrid(x_list[:,0],x_list[:,1])
+        x_mesh = x_mesh.swapaxes(0,2)
         multivariate_kernel = sm.nonparametric.KDEMultivariate(data_arr, var_type='cc', bw='normal_reference')
-        pdf = multivariate_kernel.pdf(x_list)
+        pdf = multivariate_kernel.pdf(x_mesh)
         h = multivariate_kernel.bw
         plt.contour(x_list[:,0],x_list[:,1],pdf)
         plt.show()
