@@ -17,6 +17,7 @@ from scipy.stats import lognorm
 from scipy.stats import norm
 from scipy.stats import halfnorm
 from scipy.stats import gaussian_kde
+import scipy.optimize as opt
 from statsmodels.nonparametric.kernel_density import KDEMultivariate
 import pylab as PP
 
@@ -75,7 +76,10 @@ def plot_histo_inverse_gamma(dets,scene,col,val,min_val=None,max_val=None):
                 data_arr = np.sum(data,axis=1)  
             else:
                 idx = column_value_to_index(val)
-                data_arr = data[:,idx]
+                if(idx is None):
+                    data_arr = data
+                else:
+                    data_arr = data[:,idx]
 
     if(fit):
         if (min_val == None and max_val == None):
@@ -87,11 +91,15 @@ def plot_histo_inverse_gamma(dets,scene,col,val,min_val=None,max_val=None):
         shape,loc,scale = scipy_stats.invgamma.fit(data_arr)
         g1 = scipy_stats.invgamma.pdf(x=x, a=shape, loc=loc, scale=scale)
         plt.plot(x,g1,label='{} fitted_gamma: {:.3f} {:.3f} {:.3f}'.format(scene,shape,loc,scale))
-        plt.hist(data_arr,bins=200,range=hist_range,alpha=0.5,label=col + ': ' + val,density=True,stacked=True)
+        if(val is None):
+            val_str = ''
+        else:
+            val_str = ' : {}'.format(val)
+        plt.hist(data_arr,bins=200,range=hist_range,alpha=0.5,label=col + val_str,density=True,stacked=True)
         #plt.hist(data_arr,bins=200,range=[min_val,max_val],alpha=0.5,label=cil+': '+val,density=True,stacked=True)
     return 
 
-def plot_histo_KDE(dets,scene,col,val,min_val=None,max_val=None):
+def plot_histo_KDE(df,scene,col,val,min_val=None,max_val=None):
     """
     Function to plot KDE using uncertainty parameters. Can specify or not specify range (min/max)
     args: dataframe, dets, scenetype, column(to be plotted), value(1 or all), minval, maxval
@@ -102,18 +110,20 @@ def plot_histo_KDE(dets,scene,col,val,min_val=None,max_val=None):
     3d - x_c, y_c, z_c, l, w, h, r_y
     """
     fit = 1 
-    bboxes = dets.columns
 
-    for column in bboxes:
+    for column in df.columns:
         if (col in column):
-            data = dets[column].to_list()
+            data = df[column].to_list()
             data = np.asarray(data)
             data = np.sort(data,axis=1) # for filtering outliers
             if (val == 'all'):
                 data_arr = np.sum(data,axis=1)  
             else:
                 idx = column_value_to_index(val)
-                data_arr = data[:,idx]
+                if(idx is None):
+                    data_arr = data
+                else:
+                    data_arr = data[:,idx]
             range = np.max(data) - np.min(data)  
             data_arr = data_arr[data_arr < range*0.80]  # filter above 80% values
     if(fit):
@@ -132,33 +142,22 @@ def plot_histo_KDE(dets,scene,col,val,min_val=None,max_val=None):
         print("h/bandwidth value = ", h)
     return 
 
-def plot_histo_multivariate(dets,plotname,col,vals,min_val=None,max_val=None,plot=False):
+def plot_histo_multivariate(df,plotname,col,vals,min_val=None,max_val=None,plot=False):
     """
     Function to multivariate KDE. vals is a list of strings to obtain multiple entries
-    args: dataframe, dets, scenetype, column(to be plotted), value(1 or all), minval, maxval
+    args: dataframe, df, scenetype, column(to be plotted), value(1 or all), minval, maxval
 
     column can be a_bbox_var, e_bbox_var, a_cls_var, e_cls_var (4 or 7 values - 2d or 3d)
 
     """
-    bboxes = dets.columns
-    col_vals = []
-    found = False
-    for val in vals:
-        col_vals.append(column_value_to_index(val))
-    for column in bboxes:
-        if (col in column):
-            data = dets[column].to_list()
-            data = np.asarray(data)
-            data = np.sort(data,axis=0) # for filtering outliers
-            data = data[:,col_vals]
-            found = True
+    data = extract_columns(df,col,vals)
             #for val in vals:
             #    idx = column_value_to_index(val)
             #    data_list.append(data[:,idx])
             #data_arr = np.asarray(data_list)
             #range = np.max(data) - np.min(data)  
             #data_arr = data_arr[data_arr < range*0.80]  # filter above 80% values
-    if(found):
+    if(data is not None):
         if (min_val is None):
             min_val = np.min(data)
         if (max_val is None):
@@ -174,16 +173,90 @@ def plot_histo_multivariate(dets,plotname,col,vals,min_val=None,max_val=None,plo
         print('specified column does not exist')
     return
 
+def extract_columns(df,col,vals):
+    found = False
+    col_vals = []
+    if(vals is None):
+        col_vals = None
+    else:
+        for val in vals:
+            col_vals.append(column_value_to_index(val))
+
+    for column in df.columns:
+        if (col in column):
+            data = df[column].to_list()
+            data = np.asarray(data)
+            data = np.sort(data,axis=0) # for filtering outliers
+            if(col_vals is None):
+                data = data
+            else:
+                data = data[:,col_vals]
+            found = True
+            #range = np.max(data) - np.min(data)  
+            #data_arr = data_arr[data_arr < range*0.80]  # filter above 80% values
+    if(not found):
+        print('column {} undefined'.format(col))
+        data = None
+    return data
+
+#Plot IQR and box plots
 def plot_box_plot():
     return None
 
-def plot_roc_curves():
+#Plot ROC by sweeping density_thresh
+def plot_roc_curves(df,col,vals,m_kde_tp,m_kde_fp,min_val=None,max_val=None):
+    data = extract_columns(df,col,vals)
+    f_a  = []
+    hits = []
+    signal_tp = np.asarray(df['difficulty'].to_list(),dtype=np.int32)
+    signal_tp = np.where(signal_tp != -1, True, False)
+    if(data is not None):
+        tp_densities = m_kde_tp.pdf(data)
+        fp_densities = m_kde_fp.pdf(data)
+        if (min_val is None):
+            min_val = np.min(tp_densities-fp_densities)
+        if (max_val is None):
+            max_val = np.max(tp_densities-fp_densities)
+        thresh_list = np.linspace(min_val,max_val,100)
+        for thresh in thresh_list:
+            ratios = find_ratios(df,col,vals,signal_tp,tp_densities,fp_densities,min_thresh=thresh)
+            hits.append(ratios[0])
+            f_a.append(ratios[2])
+        plt.plot(f_a,hits,label='col {} vals {}'.format(col,vals))
+    else:
+        return None
+
+#Find where function falls below a threshold
+def find_kde_roots(m_kde,min_val,max_val, density_thresh):
+    roots = opt.brentq(lambda x: m_kde(x) - density_thresh,min_val,max_val)
+    print(roots)
     return None
 
-def find_kde_roots():
-    return None
+#From SDT, find hit ratio, miss ratio, etc. etc. based on TP/FP
+def find_ratios(df,col,vals,signal_tp,tp_densities,fp_densities,min_thresh=0.0):
+    ratios    = np.zeros((4),)
+    signal_fp = np.bitwise_not(signal_tp)
+    response_tp = np.where(tp_densities > fp_densities + min_thresh,True,False)
+    response_fp = np.bitwise_not(response_tp)
+    #response_tp = np.where(tp_densities > min_thresh,True,False)
+    #fp_densities = None
+    hit               = np.bitwise_and(response_fp,signal_fp)
+    miss              = np.bitwise_and(response_tp,signal_fp)
+    false_alarm       = np.bitwise_and(response_fp,signal_tp)
+    correct_rejection = np.bitwise_and(response_tp,signal_tp)
 
-def plot_histo_multivariate_KDE(dets,plotname,col,vals,min_val=None,max_val=None):
+    #hit_density  = fp_densities[hit]
+    #miss_density = fp_densities[miss]
+    #f_a_density  = tp_densities[false_alarm]
+    #c_r_density  = tp_densities[correct_rejection]
+
+    ratios[0]  = np.sum(hit)/np.sum(signal_fp)
+    ratios[1]  = np.sum(miss)/np.sum(signal_fp)
+    ratios[2]  = np.sum(false_alarm)/np.sum(signal_tp)
+    ratios[3]  = np.sum(correct_rejection)/np.sum(signal_tp)
+    return ratios
+
+def plot_histo_multivariate_KDE(dets,plotname,col,vals,min_val=None,max_val=None,plot=False):
     """
     Function to multivariate KDE. vals is a list of strings to obtain multiple entries
     args: dataframe, dets, scenetype, column(to be plotted), value(1 or all), minval, maxval
@@ -198,17 +271,28 @@ def plot_histo_multivariate_KDE(dets,plotname,col,vals,min_val=None,max_val=None
     col_vals = []
     num_pts = 100
     found = False
-    num_col = len(vals)
-    for val in vals:
-        col_vals.append(column_value_to_index(val))
+    if(vals is not None):
+        for val in vals:
+            col_vals.append(column_value_to_index(val))
+        num_col = len(vals)
+    else:
+        num_col = 1
+        col_vals = None
     for column in bboxes:
         if (col in column):
             data     = dets[column].to_list()
             data     = np.asarray(data)
             data     = np.sort(data,axis=0) # for filtering outliers
-            data_arr = data[:,col_vals]
+            if(col_vals is None):
+                data_arr = data
+            else:
+                data_arr = data[:,col_vals]
+            found    = True
+            break
             #range = np.max(data) - np.min(data)  
             #data_arr = data_arr[data_arr < range*0.80]  # filter above 80% values
+    if(not found):
+        return None
     if(fit):
         min_val = np.min(data_arr,axis=0)
         max_val = np.max(data_arr,axis=0)
@@ -241,25 +325,30 @@ def plot_histo_multivariate_KDE(dets,plotname,col,vals,min_val=None,max_val=None
         multivariate_kernel = sm.nonparametric.KDEMultivariate(data_arr, var_type=v_type, bw='normal_reference')
         h = multivariate_kernel.bw
         #Accent, Accent_r, Blues, Blues_r, BrBG, BrBG_r, BuGn, BuGn_r, BuPu, BuPu_r, CMRmap, CMRmap_r, Dark2, Dark2_r, GnBu, GnBu_r, Greens, Greens_r, Greys, Greys_r, OrRd, OrRd_r, Oranges, Oranges_r, PRGn, PRGn_r, Paired, Paired_r, Pastel1, Pastel1_r, Pastel2, Pastel2_r, PiYG, PiYG_r, PuBu, PuBuGn, PuBuGn_r, PuBu_r, PuOr, PuOr_r, PuRd, PuRd_r, Purples, Purples_r, RdBu, RdBu_r, RdGy, RdGy_r, RdPu, RdPu_r, RdYlBu, RdYlBu_r, RdYlGn, RdYlGn_r, Reds, Reds_r, Set1, Set1_r, Set2, Set2_r, Set3, Set3_r, Spectral, Spectral_r, Wistia, Wistia_r, YlGn, YlGnBu, YlGnBu_r, YlGn_r, YlOrBr, YlOrBr_r, YlOrRd, YlOrRd_r, afmhot, afmhot_r, autumn, autumn_r, binary, binary_r, bone, bone_r, brg, brg_r, bwr, bwr_r, cividis, cividis_r, cool, cool_r, coolwarm, coolwarm_r, copper, copper_r, cubehelix, cubehelix_r, flag, flag_r, gist_earth, gist_earth_r, gist_gray, gist_gray_r, gist_heat, gist_heat_r, gist_ncar, gist_ncar_r, gist_rainbow, gist_rainbow_r, gist_stern, gist_stern_r, gist_yarg, gist_yarg_r, gnuplot, gnuplot2, gnuplot2_r, gnuplot_r, gray, gray_r, hot, hot_r, hsv, hsv_r, icefire, icefire_r, inferno, inferno_r, jet, jet_r, magma, magma_r, mako, mako_r, nipy_spectral, nipy_spectral_r, ocean, ocean_r, pink, pink_r, plasma, plasma_r, prism, prism_r, rainbow, rainbow_r, rocket, rocket_r, seismic, seismic_r, spring, spring_r, summer, summer_r, tab10, tab10_r, tab20, tab20_r, tab20b, tab20b_r, tab20c, tab20c_r, terrain, terrain_r, twilight, twilight_r, twilight_shifted, twilight_shifted_r, viridis, viridis_r, vlag, vlag_r, winter, winter_r
-        if(num_col == 1):
-            pdf_eval = multivariate_kernel.pdf(ranges)
-            labelname = plotname + ': ' + vals[0]
-            plt.plot(ranges,pdf_eval)
-            plt.hist(data_arr[:,0],bins=num_pts,range=(min_val[0],max_val[0]),alpha=0.5,label=labelname,density=True,stacked=True)
-        elif(num_col == 2):
-            x_list  = np.swapaxes(np.asarray(np.meshgrid(ranges[:,0],ranges[:,1])),0,2)
-            pdf_eval = multivariate_kernel.pdf(x_list.reshape(-1,num_col))
-            pdf_eval = pdf_eval.reshape(num_pts,num_pts)
-            if(plotname == 'TP'):
-                c_map = 'Blues'
-            elif(plotname == 'FP'):
-                c_map = 'Reds'
-            plt.contour(x_list[:,:,0],x_list[:,:,1],pdf_eval, cmap=c_map)
-        else:
-            for i in range(0,data_arr.shape[1]):
-                labelname = plotname + ': ' + vals[i]
-                plt.hist(data[:,i],bins=200,range=(hist_range),alpha=0.5,label=labelname,density=True,stacked=True)  
-        
+        if(plot):
+            if(num_col == 1):
+                pdf_eval = multivariate_kernel.pdf(ranges)
+                if(vals is None):
+                    val_str = ''
+                else:
+                    val_str = ' : {}'.format(vals[0])
+                labelname = plotname + val_str
+                plt.plot(ranges,pdf_eval)
+                plt.hist(data_arr[:,0],bins=num_pts,range=(min_val[0],max_val[0]),alpha=0.5,label=labelname,density=True,stacked=True)
+            elif(num_col == 2):
+                x_list  = np.swapaxes(np.asarray(np.meshgrid(ranges[:,0],ranges[:,1])),0,2)
+                pdf_eval = multivariate_kernel.pdf(x_list.reshape(-1,num_col))
+                pdf_eval = pdf_eval.reshape(num_pts,num_pts)
+                if(plotname == 'TP'):
+                    c_map = 'Blues'
+                elif(plotname == 'FP'):
+                    c_map = 'Reds'
+                plt.contour(x_list[:,:,0],x_list[:,:,1],pdf_eval, cmap=c_map)
+            else:
+                for i in range(0,data_arr.shape[1]):
+                    labelname = plotname + ': ' + vals[i]
+                    plt.hist(data[:,i],bins=200,range=(min_val[i],max_val[i]),alpha=0.5,label=labelname,density=True,stacked=True)  
+            
         #plt.show()
         #x = np.linspace(np.min(data_arr[0,:]),np.max(data_arr[0,:]),len(pdf))
         #plt.plot(x,pdf,'k')
@@ -291,6 +380,10 @@ def column_value_to_index(val):
         return 5
     elif (val == 'r_y'):
         return 6
+    elif (val == 'car'):
+        return 1
+    elif (val == 'bg'):
+        return 0
     else:
         print("unable to index value - string not recognized")
         return None

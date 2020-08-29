@@ -23,7 +23,7 @@ import pylab as PP
 import argparse
 import csv
 import ap_utils
-from modelling_utils import plot_histo_multivariate, plot_histo_multivariate_KDE, plot_histo_bbox_uc, plot_histo_chi_squared, plot_histo_cls_uc, extract_twosigma, plot_histo_KDE, plot_histo_inverse_gamma, plot_scatter_var
+import modelling_utils
 import transform_utils
 
 def parse_args(manual_mode):
@@ -443,11 +443,37 @@ if __name__ == '__main__':
     """
     #plot_histo_inverse_gaussian(df,'scene','a_bbox_var','x1')
     #plot_histo_KDE(df,'scene','a_bbox_var','x1', 0)
-    vals = ['w2','l2']
+
+
+    #------------------------
+    # Multivariate KDE generation and ROC curve generation
+    #------------------------
     #plot_histo_multivariate(df_tp,'TP','a_bbox_var',vals,plot=False)
     #plot_histo_multivariate(df_fp,'FP','a_bbox_var',vals,plot=False)
-    plot_histo_multivariate_KDE(df_tp,'TP','a_bbox_var',vals)
-    plot_histo_multivariate_KDE(df_fp,'FP','a_bbox_var',vals)
+
+
+    #------------------------
+    # Multivariate KDE generation and ROC curve generation
+    #------------------------
+    vals = ['x_c','y_c','z_c','l2','w2','h','r_y']
+    m_kde_tp = modelling_utils.plot_histo_multivariate_KDE(df_tp,'TP','a_bbox_var',vals,plot=False)
+    m_kde_fp = modelling_utils.plot_histo_multivariate_KDE(df_fp,'FP','a_bbox_var',vals,plot=False)
+    modelling_utils.plot_roc_curves(df,'a_bbox_var',vals,m_kde_tp,m_kde_fp)
+    vals = ['x_c','y_c','z_c','l2','w2','h','r_y']
+    m_kde_tp = modelling_utils.plot_histo_multivariate_KDE(df_tp,'TP','e_bbox_var',vals,plot=False)
+    m_kde_fp = modelling_utils.plot_histo_multivariate_KDE(df_fp,'FP','e_bbox_var',vals,plot=False)
+    modelling_utils.plot_roc_curves(df,'e_bbox_var',vals,m_kde_tp,m_kde_fp)
+    vals = ['car','bg']
+    m_kde_tp = modelling_utils.plot_histo_multivariate_KDE(df_tp,'TP','e_cls_var',vals,plot=True)
+    m_kde_fp = modelling_utils.plot_histo_multivariate_KDE(df_fp,'FP','e_cls_var',vals,plot=True)
+    modelling_utils.plot_roc_curves(df,'e_cls_var',vals,m_kde_tp,m_kde_fp)
+    #ratios = modelling_utils.find_ratios(df,'a_bbox_var',vals,m_kde_tp,m_kde_fp,min_thresh=1.0)
+    #print('hit: {} miss: {} false_alarm: {} correct_rejection: {}'.format(ratios[0],ratios[1],ratios[2],ratios[3]))
+
+
+    #------------------------
+    # Scatter plot generation
+    #------------------------
     plt.legend()
     plt.show()
     #plot_histo_multivariate_KDE(df,'scene','a_bbox_var',vals)
