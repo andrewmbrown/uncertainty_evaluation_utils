@@ -11,14 +11,6 @@ import cv2
 import matplotlib.pyplot as plt
 import scipy.stats as scipy_stats
 import pickle
-import statsmodels.api as sm
-import seaborn as sns
-from scipy.stats import lognorm
-from scipy.stats import norm
-from scipy.stats import halfnorm
-from scipy.stats import gaussian_kde
-from statsmodels.nonparametric.kernel_density import KDEMultivariate
-from fastkde import fastKDE
 import pylab as PP
 
 def label_3D_to_image(json_calib, metadata, bbox):
@@ -160,3 +152,7 @@ def bbdet3d_to_bbdet2d(df,top_crop):
         bbox2D_col.append(bbox2D)
     df['bbdet3d_2d'] = bbox2D_col
     return df
+
+
+if __name__ == '__main__':
+    print('cannot run file stand-alone')

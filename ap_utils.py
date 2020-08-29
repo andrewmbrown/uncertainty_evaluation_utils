@@ -11,14 +11,6 @@ import cv2
 import matplotlib.pyplot as plt
 import scipy.stats as scipy_stats
 import pickle
-import statsmodels.api as sm
-import seaborn as sns
-from scipy.stats import lognorm
-from scipy.stats import norm
-from scipy.stats import halfnorm
-from scipy.stats import gaussian_kde
-from statsmodels.nonparametric.kernel_density import KDEMultivariate
-from fastkde import fastKDE
 import pylab as PP
 
 def ap(rec, prec):
@@ -261,3 +253,7 @@ def calculate_ap(df,d_levels,gt_path=None,gt_file=None):
         plt.show()
     print(map)
     return mrec,mprec,map
+
+
+if __name__ == '__main__':
+    print('cannot run file stand-alone')

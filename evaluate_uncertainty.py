@@ -19,10 +19,12 @@ from scipy.stats import norm
 from scipy.stats import halfnorm
 from scipy.stats import gaussian_kde
 from statsmodels.nonparametric.kernel_density import KDEMultivariate
-from fastkde import fastKDE
 import pylab as PP
 import argparse
 import csv
+import ap_utils
+from modelling_utils import plot_histo_multivariate_KDE, plot_histo_bbox_uc, plot_histo_chi_squared, plot_histo_cls_uc, extract_twosigma, plot_histo_KDE, plot_histo_inverse_gamma, plot_scatter_var
+import transform_utils
 
 def parse_args(manual_mode):
     """
@@ -80,8 +82,8 @@ def parse_args(manual_mode):
     print(args)
     return args
 
-def parse_dets(det_file):
-    if ("3d" in det_file):  # is the file from lidar or img domain
+def parse_dets(det_file,sensor_type):
+    if (sensor_type == 'lidar'):  # is the file from lidar or img domain
         lidar_flag = True
     else:
         lidar_flag = False
@@ -342,7 +344,7 @@ def draw_filtered_detections(df,out_dir,data_dir):
             draw.rectangle(row[bbdets_column])  # must draw as for loop will iterate off detection
             idx = current_idx  # update idx
 
-def get_df(dataset,cache_dir,dets_file,data_dir):
+def get_df(dataset,cache_dir,dets_file,data_dir,sensor_type):
         """
     Return the database of ground-truth regions of interest.
 
@@ -351,7 +353,8 @@ def get_df(dataset,cache_dir,dets_file,data_dir):
         #for line in traceback.format_stack():
         #    print(line.strip())
         det_file_name = os.path.basename(dets_file).replace('.txt','')
-        cache_file = os.path.join(cache_dir,det_file_name+'_df.pkl')
+        cache_filename = '{}_{}_{}_df.pkl'.format(sensor_type,dataset,det_file_name)
+        cache_file = os.path.join(cache_dir,cache_filename)
         if os.path.exists(cache_file):
             with open(cache_file, 'rb') as fid:
                 try:
@@ -363,7 +366,7 @@ def get_df(dataset,cache_dir,dets_file,data_dir):
 
         df = []
         with open(dets_file) as det_file:
-            dets_df  = parse_dets(det_file.readlines())
+            dets_df  = parse_dets(det_file.readlines(),sensor_type)
         if (dataset == 'kitti'):
             df = dets_df
         elif(dataset == 'cadc'):
@@ -399,25 +402,27 @@ def get_df(dataset,cache_dir,dets_file,data_dir):
 #gt_file        = os.path.join(datapath,'val','labels','{}_labels.json'.format(sensor_type))
 #column_names = ['assoc_frame','scene_idx','frame_idx','bbdet','a_cls_var','a_cls_entropy','a_cls_mutual_info','e_cls_entropy','e_cls_mutual_info','a_bbox_var','e_bbox_var','track_idx','difficulty','pts','cls_idx','bbgt']
 
+
 if __name__ == '__main__': 
     manual_mode = True
     args = parse_args(manual_mode)
     if(manual_mode):
-        args.root_dir    = os.path.join('home','mat','thesis')
+        args.root_dir    = os.path.join('/home','mat','thesis')
         args.sensor_type = 'lidar'
         args.dataset     = 'waymo'
-        args.det_file_1  = os.path.join(args.root_dir,'final_releases',args.sensor_type,args.dataset,'base+aug_a_e_uc_2c','3d_test_results','3d_results.txt')
-        args.out_dir     = os.path.join(args.root_dir,'eval_out') 
+        args.det_file_1  = os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+aug_a_e_uc_2c','3d_test_results','3d_results.txt')
+        args.out_dir     = os.path.join(args.root_dir,'eval_out')
         args.cache_dir   = os.path.join(args.root_dir,'eval_cache')
-        args.data_dir    = os.path.join(args.root_dir,'data2') 
+        args.data_dir    = os.path.join(args.root_dir,'data2')
     num_scenes = 210
     top_crop = 300
     bot_crop = 30
+    data_dir = os.path.join(args.data_dir,args.dataset)
     if(args.dataset == 'waymo'):
-        gt_file = os.path.join(args.data_dir,'val','labels','{}_labels.json'.format(args.sensor_type))
+        gt_file = os.path.join(data_dir,'val','labels','{}_labels.json'.format(args.sensor_type))
     else:
         gt_file = ''
-    df = get_df(args.dataset,args.cache_dir,args.det_file_1,args.data_dir)
+    df = get_df(args.dataset,args.cache_dir,args.det_file_1,data_dir,args.sensor_type)
     #(mrec,prec,map) = calculate_ap(df,3,gt_path,gt_file)  # 2nd value is # of difficulty types
     #df = bbdet3d_to_bbdet2d(df,top_crop)
     print(df)

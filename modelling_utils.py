@@ -18,12 +18,7 @@ from scipy.stats import norm
 from scipy.stats import halfnorm
 from scipy.stats import gaussian_kde
 from statsmodels.nonparametric.kernel_density import KDEMultivariate
-from fastkde import fastKDE
 import pylab as PP
-
-from .ap_utils import *
-from .modelling_utils import *
-from .transform_utils import *
 
 def plot_scatter_var(df,x,y):
     '''
@@ -59,7 +54,7 @@ def plot_scatter_var(df,x,y):
     plt.xlabel(x)
     plt.ylabel(y)
 
-def plot_histo_inverse_gaussian(dets,scene,col,val,min_val=None,max_val=None):
+def plot_histo_inverse_gamma(dets,scene,col,val,min_val=None,max_val=None):
     """
     Function to plot inverse gamma using uncertainty parameters
     args: dataframe, dets, scenetype, minval, maxval, column(to be plotted), value(1 or all)
@@ -175,14 +170,14 @@ def plot_histo_multivariate_KDE(dets,scene,col,vals,min_val=None,max_val=None):
 
         hist_range = (min_val,max_val)
         
-        myPDF,axes = fastKDE.pdf(data_arr[0,:],data_arr[1,:])
+        #myPDF,axes = fastKDE.pdf(data_arr[0,:],data_arr[1,:])
         #Extract the axes from the axis list
-        v1,v2 = axes
+        #v1,v2 = axes
 
         #Plot contours of the PDF should be a set of concentric ellipsoids centered on
         #(0.1, -300) Comparitively, the y axis range should be tiny and the x axis range
         #should be large
-        PP.contour(v1,v2,myPDF)
+        #PP.contour(v1,v2,myPDF)
         #PP.show()
 
         df = pd.DataFrame({'x_c': data_arr[0, :], 'y_c': data_arr[1, :]})
@@ -456,3 +451,7 @@ def plot_histo_bbox_uc(dets,scene,min_val,max_val):
             #min_vdraw   = np.mean(hist_data)
             #hist_data = (hist_data-min_val)/(max_val-min_val)
     return data
+
+
+if __name__ == '__main__':
+    print('cannot run file stand-alone')
