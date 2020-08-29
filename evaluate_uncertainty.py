@@ -408,8 +408,8 @@ if __name__ == '__main__':
     args = parse_args(manual_mode)
     if(manual_mode):
         args.root_dir    = os.path.join('/home','mat','thesis')
-        args.sensor_type = 'image'
-        args.dataset     = 'waymo'
+        args.sensor_type = 'lidar'
+        args.dataset     = 'cadc'
         args.det_file_1  = os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+aug_a_e_uc','test_results','results.txt')
         args.out_dir     = os.path.join(args.root_dir,'eval_out')
         args.cache_dir   = os.path.join(args.root_dir,'eval_cache')
@@ -443,9 +443,11 @@ if __name__ == '__main__':
     """
     #plot_histo_inverse_gaussian(df,'scene','a_bbox_var','x1')
     #plot_histo_KDE(df,'scene','a_bbox_var','x1', 0)
-    vals = ['x_c','y_c']
-    plot_histo_multivariate(df_tp,'TP','a_bbox_var',vals,plot=False)
-    plot_histo_multivariate(df_fp,'FP','a_bbox_var',vals,plot=False)
+    vals = ['w2','l2']
+    #plot_histo_multivariate(df_tp,'TP','a_bbox_var',vals,plot=False)
+    #plot_histo_multivariate(df_fp,'FP','a_bbox_var',vals,plot=False)
+    plot_histo_multivariate_KDE(df_tp,'TP','a_bbox_var',vals)
+    plot_histo_multivariate_KDE(df_fp,'FP','a_bbox_var',vals)
     plt.legend()
     plt.show()
     #plot_histo_multivariate_KDE(df,'scene','a_bbox_var',vals)
