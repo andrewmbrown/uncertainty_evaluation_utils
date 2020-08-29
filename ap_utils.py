@@ -64,7 +64,8 @@ def count_cadc_npos(gt_path,df):
     #npos += cadc_label_npos(gt_path,stripped_line)
     det_idx = 0
     npos = np.zeros(3)
-    labels = os.listdir(gt_path)
+    cadc_gt_path = os.path.join(gt_path,'val','annotation_00')
+    labels = os.listdir(cadc_gt_path)
     frame_idx = np.asarray(df['frame_idx'])
     unique_idx = np.unique(np.sort(frame_idx), axis=0)
 
@@ -73,7 +74,7 @@ def count_cadc_npos(gt_path,df):
         if det_idx == len(unique_idx):
             break
         if (unique_idx[det_idx] == label_int):
-            npos += cadc_label_npos(gt_path,label.replace('.txt',''))
+            npos += cadc_label_npos(gt_path+'/val',label.replace('.txt',''))
             det_idx += 1
     
     return npos
@@ -117,6 +118,7 @@ def count_kitti_npos(gt_path,df):
     idx = frame_idx  
     idx_sorted = np.sort(idx)
     unique_idx = np.unique(idx_sorted, axis=0)
+    kitti_gt_path = os.path.join(gt_path,'training','label_2')
     val_split_file = os.path.join(gt_path,'splits','val.txt')
     with open(val_split_file, "r") as file:
         for line in file:
@@ -127,7 +129,7 @@ def count_kitti_npos(gt_path,df):
         if det_idx == len(unique_idx):
             break
         if (unique_idx[det_idx] == label_int):
-            npos += kitti_label_npos(gt_path,label)
+            npos += kitti_label_npos(kitti_gt_path,label)
             det_idx += 1
     
     return npos

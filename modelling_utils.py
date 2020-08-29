@@ -38,14 +38,14 @@ def plot_scatter_var(df,x,y):
     if  x == 'bbdet':  # x0,y0,x1,y1
         width = data_x[:,2]-data_x[:,0]
         length = data_x[:,3]-data_x[:,1]
-        data_x = width * length 
+        data_x = width * length
         x = 'bbox_area'
     elif data_x[1].shape:  # for both data, check if they must be summed
         data_x = np.sum(data_x,axis=1) 
     if y == 'bbdet':  # x0,y0,x1,y1
         width = data_y[:,2]-data_y[:,0]
         length = data_y[:,3]-data_y[:,1]
-        data_y = width * length 
+        data_y = width * length
         y = 'bbox_area'
     elif data_y[1].shape:
         data_y = np.sum(data_y,axis=1) 
