@@ -117,12 +117,9 @@ def plot_histo_KDE(dets,scene,col,val,min_val=None,max_val=None):
             range = np.max(data) - np.min(data)  
             data_arr = data_arr[data_arr < range*0.80]  # filter above 80% values
     if(fit):
-        if (min_val == None and max_val == None):
+        if (min_val is None):
             min_val = np.min(data_arr)
-            max_val = np.max(data_arr)
-        elif (min_val == None and max_val != None):
-            min_val = 0
-        elif (max_val == None and min_val != None):
+        if (max_val is None):
             max_val = np.max(data_arr)
         hist_range = (min_val,max_val)
         x = np.arange(min_val,max_val,.0001)
@@ -135,7 +132,50 @@ def plot_histo_KDE(dets,scene,col,val,min_val=None,max_val=None):
         print("h/bandwidth value = ", h)
     return 
 
-def plot_histo_multivariate_KDE(dets,scene,col,vals,min_val=None,max_val=None):
+def plot_histo_multivariate(dets,plotname,col,vals,min_val=None,max_val=None,plot=False):
+    """
+    Function to multivariate KDE. vals is a list of strings to obtain multiple entries
+    args: dataframe, dets, scenetype, column(to be plotted), value(1 or all), minval, maxval
+
+    column can be a_bbox_var, e_bbox_var, a_cls_var, e_cls_var (4 or 7 values - 2d or 3d)
+
+    """
+    bboxes = dets.columns
+    col_vals = []
+    found = False
+    for val in vals:
+        col_vals.append(column_value_to_index(val))
+    for column in bboxes:
+        if (col in column):
+            data = dets[column].to_list()
+            data = np.asarray(data)
+            data = np.sort(data,axis=0) # for filtering outliers
+            data = data[:,col_vals]
+            found = True
+            #for val in vals:
+            #    idx = column_value_to_index(val)
+            #    data_list.append(data[:,idx])
+            #data_arr = np.asarray(data_list)
+            #range = np.max(data) - np.min(data)  
+            #data_arr = data_arr[data_arr < range*0.80]  # filter above 80% values
+    if(found):
+        if (min_val is None):
+            min_val = np.min(data)
+        if (max_val is None):
+            max_val = np.max(data)
+        hist_range = (min_val,max_val)
+        for i in range(0,data.shape[1]):
+            labelname = plotname + ': ' + vals[i]
+            plt.hist(data[:,i],bins=200,range=(hist_range),alpha=0.5,label=labelname,density=True,stacked=True)
+        if(plot):
+            plt.legend()
+            plt.show()
+    else:
+        print('specified column does not exist')
+    return
+
+
+def plot_histo_multivariate_KDE(dets,plotname,col,vals,min_val=None,max_val=None):
     """
     Function to multivariate KDE. vals is a list of strings to obtain multiple entries
     args: dataframe, dets, scenetype, column(to be plotted), value(1 or all), minval, maxval
@@ -180,7 +220,7 @@ def plot_histo_multivariate_KDE(dets,scene,col,vals,min_val=None,max_val=None):
         #PP.contour(v1,v2,myPDF)
         #PP.show()
 
-        df = pd.DataFrame({'x_c': data_arr[0, :], 'y_c': data_arr[1, :]})
+        df = pd.DataFrame({'x_c': data_arr[:,0], 'y_c': data_arr[:, 0]})
         sns.jointplot(x='x_c',y='y_c', data=df, kind='kde')
         scipy_kernel = gaussian_kde(data_arr,bw_method=.035)  # kernel function centered on each datapoint
         pdf = scipy_kernel.evaluate(x_list)  # sum all functions together and normalize to obtain pdf

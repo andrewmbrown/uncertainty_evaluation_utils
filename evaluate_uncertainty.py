@@ -23,7 +23,7 @@ import pylab as PP
 import argparse
 import csv
 import ap_utils
-from modelling_utils import plot_histo_multivariate_KDE, plot_histo_bbox_uc, plot_histo_chi_squared, plot_histo_cls_uc, extract_twosigma, plot_histo_KDE, plot_histo_inverse_gamma, plot_scatter_var
+from modelling_utils import plot_histo_multivariate, plot_histo_multivariate_KDE, plot_histo_bbox_uc, plot_histo_chi_squared, plot_histo_cls_uc, extract_twosigma, plot_histo_KDE, plot_histo_inverse_gamma, plot_scatter_var
 import transform_utils
 
 def parse_args(manual_mode):
@@ -408,12 +408,12 @@ if __name__ == '__main__':
     args = parse_args(manual_mode)
     if(manual_mode):
         args.root_dir    = os.path.join('/home','mat','thesis')
-        args.sensor_type = 'lidar'
+        args.sensor_type = 'image'
         args.dataset     = 'waymo'
-        args.det_file_1  = os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+aug_a_e_uc_2c','3d_test_results','3d_results.txt')
+        args.det_file_1  = os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+aug_a_e_uc','test_results','results.txt')
         args.out_dir     = os.path.join(args.root_dir,'eval_out')
         args.cache_dir   = os.path.join(args.root_dir,'eval_cache')
-        args.data_dir    = os.path.join(args.root_dir,'data2')
+        args.data_dir    = os.path.join(args.root_dir,'data')
     num_scenes = 210
     top_crop = 300
     bot_crop = 30
@@ -425,18 +425,17 @@ if __name__ == '__main__':
     df = get_df(args.dataset,args.cache_dir,args.det_file_1,data_dir,args.sensor_type)
     #(mrec,prec,map) = calculate_ap(df,3,gt_path,gt_file)  # 2nd value is # of difficulty types
     #df = bbdet3d_to_bbdet2d(df,top_crop)
-    print(df)
-    df = df.loc[df['difficulty'] != -1]
+    #print(df)
+    df_tp = df.loc[df['difficulty'] != -1]
+    df_fp = df.loc[df['difficulty'] == -1]
     #df   = df.loc[df['confidence'] > 0.9]
-    night_dets = df.loc[df['tod'] == 'Night']
-    day_dets = df.loc[df['tod'] == 'Day']
-    rain_dets = df.loc[df['weather'] == 'rain']
-    sun_dets = df.loc[df['weather'] == 'sunny']
-    scene_dets = df.loc[df['scene_idx'] == 168]
-    diff1_dets = df.loc[df['difficulty'] != 2]
-    diff2_dets = df.loc[df['difficulty'] == 2]
-    minm = 0
-    maxm = .02
+    #night_dets = df.loc[df['tod'] == 'Night']
+    #day_dets = df.loc[df['tod'] == 'Day']
+    #rain_dets = df.loc[df['weather'] == 'rain']
+    #sun_dets = df.loc[df['weather'] == 'sunny']
+    #scene_dets = df.loc[df['scene_idx'] == 168]
+    #diff1_dets = df.loc[df['difficulty'] != 2]
+    #diff2_dets = df.loc[df['difficulty'] == 2]
     
     """
     2d - x_c, y_c, l1, w1
@@ -445,7 +444,11 @@ if __name__ == '__main__':
     #plot_histo_inverse_gaussian(df,'scene','a_bbox_var','x1')
     #plot_histo_KDE(df,'scene','a_bbox_var','x1', 0)
     vals = ['x_c','y_c']
-    plot_histo_multivariate_KDE(df,'scene','a_bbox_var',vals)
+    plot_histo_multivariate(df_tp,'TP','a_bbox_var',vals,plot=False)
+    plot_histo_multivariate(df_fp,'FP','a_bbox_var',vals,plot=False)
+    plt.legend()
+    plt.show()
+    #plot_histo_multivariate_KDE(df,'scene','a_bbox_var',vals)
     #dets,scene,col,val,min_val=None,max_val=None
     # scene_data = plot_histo_bbox_uc(scene_dets,'scene',minm,maxm)
     #night_data = plot_histo_bbox_uc(night_dets,'night',minm,maxm)
@@ -478,8 +481,5 @@ if __name__ == '__main__':
     #plot_histo_bbox_uc(diff2_dets,'lvl2',minm,maxm)
     #plot_histo_bbox_uc(diff1_dets,'lvl1',minm,maxm)
     #print('mu = ',mu,'sigma = ',sigma)
-    plt.legend()
-    plt.show()
-    #print(day_dets)
-    #print(night_dets)
-    #print(rain_dets)
+    #plt.legend()
+    #plt.show()
