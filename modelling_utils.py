@@ -212,7 +212,6 @@ def extract_columns(df,col,vals):
         if (col in column):
             data = df[column].to_list()
             data = np.asarray(data)
-            data = np.sort(data,axis=0) # for filtering outliers
             if(col_vals is None):
                 data = data
             else:
@@ -226,8 +225,21 @@ def extract_columns(df,col,vals):
     return data
 
 #Plot IQR and box plots
-def plot_box_plot():
-    return None
+def plot_box_plot(df,col,vals):
+    data = extract_columns(df,col,vals)
+    if(data.ndim > 1):
+        data = np.sum(data,axis=1)
+    plt.boxplot(data,labels=[col],vert=False)
+    plt.scatter(data,np.ones((data.shape[0])))
+    median = np.median(data)
+    mean   = np.mean(data)
+    upper_quartile = np.percentile(data, 75)
+    lower_quartile = np.percentile(data, 25)
+
+    iqr = upper_quartile - lower_quartile
+    upper_whisker = data[data<=upper_quartile+1.5*iqr].max()
+    lower_whisker = data[data>=lower_quartile-1.5*iqr].min()
+    return [mean,median,upper_whisker,lower_whisker]
 
 #Plot ROC by sweeping density_thresh
 def plot_roc_curves(df,col,vals,m_kde_tp,m_kde_fp,min_val=None,max_val=None):

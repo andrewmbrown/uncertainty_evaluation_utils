@@ -488,9 +488,16 @@ if __name__ == '__main__':
     #------------------------
     # Scatter plot generation
     #------------------------
-    vals = None
+    #vals = None
     #vals = ['l2','w2','h']
-    modelling_utils.plot_scatter_var(df,'distance','e_bbox_var',vals,swap=True)
+    #modelling_utils.plot_scatter_var(df,'distance','e_bbox_var',vals,swap=True)
+    
+    #------------------------
+    # Box plot generation
+    #------------------------
+    #vals = None
+    #modelling_utils.plot_box_plot(df,'a_bbox_var',vals)
+
     plt.legend()
     plt.show()
 
