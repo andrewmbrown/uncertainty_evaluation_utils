@@ -402,32 +402,42 @@ def get_df(dataset,cache_dir,dets_file,data_dir,sensor_type):
 #gt_file        = os.path.join(datapath,'val','labels','{}_labels.json'.format(sensor_type))
 #column_names = ['assoc_frame','scene_idx','frame_idx','bbdet','a_cls_var','a_cls_entropy','a_cls_mutual_info','e_cls_entropy','e_cls_mutual_info','a_bbox_var','e_bbox_var','track_idx','difficulty','pts','cls_idx','bbgt']
 
-
+"""
+2d - x_c, y_c, l1, w1
+3d - x_c, y_c, z_c, l2, w2, h, r_y
+"""
 if __name__ == '__main__': 
     manual_mode = True
     args = parse_args(manual_mode)
+    #-------------------------
+    # Manual args
+    #-------------------------
     if(manual_mode):
         args.root_dir    = os.path.join('/home','mat','thesis')
         args.sensor_type = 'lidar'
-        args.dataset     = 'cadc'
-        args.det_file_1  = os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+aug_a_e_uc','test_results','results.txt')
+        args.dataset     = 'kitti'
+        args.det_file_1  = os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+aug_a_e_uc_2c','test_results','3d_results_35_2.txt')
         args.out_dir     = os.path.join(args.root_dir,'eval_out')
         args.cache_dir   = os.path.join(args.root_dir,'eval_cache')
-        args.data_dir    = os.path.join(args.root_dir,'data')
+        args.data_dir    = os.path.join(args.root_dir,'data2')
     num_scenes = 210
     top_crop = 300
     bot_crop = 30
     data_dir = os.path.join(args.data_dir,args.dataset)
+
+    #-------------------------
+    # Init
+    #-------------------------
     if(args.dataset == 'waymo'):
         gt_file = os.path.join(data_dir,'val','labels','{}_labels.json'.format(args.sensor_type))
     else:
         gt_file = ''
     df = get_df(args.dataset,args.cache_dir,args.det_file_1,data_dir,args.sensor_type)
-    #(mrec,prec,map) = calculate_ap(df,3,gt_path,gt_file)  # 2nd value is # of difficulty types
-    #df = bbdet3d_to_bbdet2d(df,top_crop)
-    #print(df)
-    df_tp = df.loc[df['difficulty'] != -1]
-    df_fp = df.loc[df['difficulty'] == -1]
+
+    #-------------------------
+    # Example filters for data
+    #-------------------------
+    #df    = df.loc[df['confidence'] > 0.5]
     #df   = df.loc[df['confidence'] > 0.9]
     #night_dets = df.loc[df['tod'] == 'Night']
     #day_dets = df.loc[df['tod'] == 'Day']
@@ -436,14 +446,17 @@ if __name__ == '__main__':
     #scene_dets = df.loc[df['scene_idx'] == 168]
     #diff1_dets = df.loc[df['difficulty'] != 2]
     #diff2_dets = df.loc[df['difficulty'] == 2]
-    
-    """
-    2d - x_c, y_c, l1, w1
-    3d - x_c, y_c, z_c, l2, w2, h, r_y
-    """
     #plot_histo_inverse_gaussian(df,'scene','a_bbox_var','x1')
     #plot_histo_KDE(df,'scene','a_bbox_var','x1', 0)
 
+    df_tp = df.loc[df['difficulty'] != -1]
+    df_fp = df.loc[df['difficulty'] == -1]
+
+    #-------------------------
+    # Compute AP
+    #-------------------------
+    #(mrec,prec,map) = calculate_ap(df,3,gt_path,gt_file)  # 2nd value is # of difficulty types
+    #df = bbdet3d_to_bbdet2d(df,top_crop)
 
     #------------------------
     # Multivariate KDE generation and ROC curve generation
@@ -455,6 +468,7 @@ if __name__ == '__main__':
     #------------------------
     # Multivariate KDE generation and ROC curve generation
     #------------------------
+    """
     vals = ['x_c','y_c','z_c','l2','w2','h','r_y']
     m_kde_tp = modelling_utils.plot_histo_multivariate_KDE(df_tp,'TP','a_bbox_var',vals,plot=False)
     m_kde_fp = modelling_utils.plot_histo_multivariate_KDE(df_fp,'FP','a_bbox_var',vals,plot=False)
@@ -469,13 +483,20 @@ if __name__ == '__main__':
     modelling_utils.plot_roc_curves(df,'e_cls_var',vals,m_kde_tp,m_kde_fp)
     #ratios = modelling_utils.find_ratios(df,'a_bbox_var',vals,m_kde_tp,m_kde_fp,min_thresh=1.0)
     #print('hit: {} miss: {} false_alarm: {} correct_rejection: {}'.format(ratios[0],ratios[1],ratios[2],ratios[3]))
-
+    """
 
     #------------------------
     # Scatter plot generation
     #------------------------
+    vals = None
+    #vals = ['l2','w2','h']
+    modelling_utils.plot_scatter_var(df,'distance','e_bbox_var',vals,swap=True)
     plt.legend()
     plt.show()
+
+    #-------------------------
+    # Misc
+    #-------------------------
     #plot_histo_multivariate_KDE(df,'scene','a_bbox_var',vals)
     #dets,scene,col,val,min_val=None,max_val=None
     # scene_data = plot_histo_bbox_uc(scene_dets,'scene',minm,maxm)

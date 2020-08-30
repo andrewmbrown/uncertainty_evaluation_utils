@@ -17,44 +17,70 @@ from scipy.stats import lognorm
 from scipy.stats import norm
 from scipy.stats import halfnorm
 from scipy.stats import gaussian_kde
+from scipy.stats import pearsonr
+from scipy.stats import spearmanr
 import scipy.optimize as opt
 from statsmodels.nonparametric.kernel_density import KDEMultivariate
 import pylab as PP
 
-def plot_scatter_var(df,x,y):
+def plot_scatter_var(df,x,y,y_cols=None,swap=False):
     '''
     Scatter plot function x against y, y is usually variance (uncertainty)
     args: df, x, y (x and y must be same length)
     returns: None
     '''
-    data_x = df[x].to_list()
-    data_x = np.asarray(data_x)
-    data_y = df[y].to_list()
-    data_y = np.asarray(data_y)
-    if  x == 'bbdet':  # x0,y0,x1,y1
-        width = data_x[:,2]-data_x[:,0]
-        length = data_x[:,3]-data_x[:,1]
-        data_x = width * length
-        x = 'bbox_area'
-    elif data_x[1].shape:  # for both data, check if they must be summed
-        data_x = np.sum(data_x,axis=1) 
-    if y == 'bbdet':  # x0,y0,x1,y1
-        width = data_y[:,2]-data_y[:,0]
-        length = data_y[:,3]-data_y[:,1]
-        data_y = width * length
-        y = 'bbox_area'
-    elif data_y[1].shape:
-        data_y = np.sum(data_y,axis=1) 
+    #Attribute extract
+    if x == 'bbox_area':  # x0,y0,x1,y1
+        attr_data = np.asarray(df['bbdet'].to_list())
+        width  = attr_data[:,2]-attr_data[:,0]
+        length = attr_data[:,3]-attr_data[:,1]
+        attr_data = width * length
+    elif x == 'bbox_volume':
+        attr_data = np.asarray(df['bbdet3d'].to_list())
+        width  = attr_data[:,3]
+        length = attr_data[:,4]
+        height = attr_data[:,5]
+        attr_data = width * length * height
+    elif x == 'distance':
+        attr_data = np.asarray(df['bbdet3d'].to_list())
+        x_c = attr_data[:,0]
+        y_c = attr_data[:,1]
+        z_c = attr_data[:,2]
+        attr_data = np.sqrt(np.power(x_c,2)+np.power(y_c,2)+np.power(z_c,2))
+    elif x == 'rotation':
+        attr_data = np.asarray(df['bbdet3d'].to_list())
+        ry = attr_data[:,6]
+        attr_data = np.sin(ry)
+    else:
+        attr_data = np.asarray(df[x])
+        if(attr_data.ndim > 1):
+            attr_data = np.sum(attr_data,axis=1) 
+
+    #Uncertainty extract
+    uc_data = df[y].to_list()
+    uc_data = np.asarray(uc_data)
+    if y_cols is not None:
+        uc_data = extract_columns(df,y,y_cols)
+    if uc_data.ndim > 1:
+        uc_data = np.sum(uc_data,axis=1)
         
     label = x + ' vs ' + y
-    covariance = np.cov(data_x,data_y)
-    plt.scatter(data_x,data_y,label=label,color='r',marker='*',s=1)
+    covariance = np.cov(attr_data,uc_data)
+    if(swap):
+        plt.scatter(uc_data,attr_data,label=label,color='r',marker='*',s=1)
+        plt.xlabel(y)
+        plt.ylabel(x)
+    else:
+        plt.scatter(attr_data,uc_data,label=label,color='r',marker='*',s=1)
+        plt.xlabel(x)
+        plt.ylabel(y)
+    #https://machinelearningmastery.com/how-to-use-correlation-to-understand-the-relationship-between-variables/#:~:text=The%20Pearson%20correlation%20coefficient%20(named,deviation%20of%20each%20data%20sample.
+    corr, _ = pearsonr(uc_data,attr_data)
+    scorr, _ = spearmanr(uc_data,attr_data)
     #plt.text(.7,1,'cov = %s %s  %s %s' %(covariance[0,0],covariance[0,1],covariance[1,0],covariance[1,1])) 
     #plt.text(1.2,0,'cov = %s %s  %s %s' %(covariance[0,0],covariance[0,1],covariance[1,0],covariance[1,1]))
     print('covariance=\n', covariance[0,0],covariance[0,1],'\n',covariance[1,0],covariance[1,1]) 
-    plt.xlabel(x)
-    plt.ylabel(y)
-
+    print('correlation: {} spearman correlation: {}'.format(corr,scorr))
 def plot_histo_inverse_gamma(dets,scene,col,val,min_val=None,max_val=None):
     """
     Function to plot inverse gamma using uncertainty parameters
@@ -217,7 +243,7 @@ def plot_roc_curves(df,col,vals,m_kde_tp,m_kde_fp,min_val=None,max_val=None):
             min_val = np.min(tp_densities-fp_densities)
         if (max_val is None):
             max_val = np.max(tp_densities-fp_densities)
-        thresh_list = np.linspace(min_val,max_val,100)
+        thresh_list = np.linspace(min_val,max_val,25)
         for thresh in thresh_list:
             ratios = find_ratios(df,col,vals,signal_tp,tp_densities,fp_densities,min_thresh=thresh)
             hits.append(ratios[0])
