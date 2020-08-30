@@ -416,10 +416,10 @@ if __name__ == '__main__':
         args.root_dir    = os.path.join('/home','mat','thesis')
         args.sensor_type = 'lidar'
         args.dataset     = 'kitti'
-        args.det_file_1  = os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+aug_a_e_uc_2c','test_results','3d_results_35_2.txt')
+        args.det_file_1  = os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+aug_a_e_uc_4','test_results','results.txt')
         args.out_dir     = os.path.join(args.root_dir,'eval_out')
         args.cache_dir   = os.path.join(args.root_dir,'eval_cache')
-        args.data_dir    = os.path.join(args.root_dir,'data2')
+        args.data_dir    = os.path.join(args.root_dir,'data')
     num_scenes = 210
     top_crop = 300
     bot_crop = 30
@@ -446,9 +446,6 @@ if __name__ == '__main__':
     #scene_dets = df.loc[df['scene_idx'] == 168]
     #diff1_dets = df.loc[df['difficulty'] != 2]
     #diff2_dets = df.loc[df['difficulty'] == 2]
-    #plot_histo_inverse_gaussian(df,'scene','a_bbox_var','x1')
-    #plot_histo_KDE(df,'scene','a_bbox_var','x1', 0)
-
     df_tp = df.loc[df['difficulty'] != -1]
     df_fp = df.loc[df['difficulty'] == -1]
 
@@ -464,6 +461,14 @@ if __name__ == '__main__':
     #plot_histo_multivariate(df_tp,'TP','a_bbox_var',vals,plot=False)
     #plot_histo_multivariate(df_fp,'FP','a_bbox_var',vals,plot=False)
 
+    #------------------------
+    # Multivariate statistical testing
+    #------------------------
+    vals = ['x_c','y_c','z_c','l2','w2','h','r_y']
+    kstest   = modelling_utils.run_kstest(df_tp,df_fp,'a_bbox_var',vals,sum_vals=True)
+    kldiv = modelling_utils.kl_divergence_2samp(df_tp,df_fp,'a_bbox_var',vals)
+    jsdiv = modelling_utils.js_divergence_2samp(df_tp,df_fp,'a_bbox_var',vals)
+    print('kstest: {} kldiv: {} jsdiv {}'.format(kstest,kldiv,jsdiv))
 
     #------------------------
     # Multivariate KDE generation and ROC curve generation
@@ -473,6 +478,10 @@ if __name__ == '__main__':
     m_kde_tp = modelling_utils.plot_histo_multivariate_KDE(df_tp,'TP','a_bbox_var',vals,plot=False)
     m_kde_fp = modelling_utils.plot_histo_multivariate_KDE(df_fp,'FP','a_bbox_var',vals,plot=False)
     modelling_utils.plot_roc_curves(df,'a_bbox_var',vals,m_kde_tp,m_kde_fp)
+    #https://stats.stackexchange.com/questions/57885/how-to-interpret-p-value-of-kolmogorov-smirnov-test-python
+    #Also should run KL and Wilcoxon
+
+
     vals = ['x_c','y_c','z_c','l2','w2','h','r_y']
     m_kde_tp = modelling_utils.plot_histo_multivariate_KDE(df_tp,'TP','e_bbox_var',vals,plot=False)
     m_kde_fp = modelling_utils.plot_histo_multivariate_KDE(df_fp,'FP','e_bbox_var',vals,plot=False)

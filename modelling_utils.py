@@ -13,16 +13,133 @@ import scipy.stats as scipy_stats
 import pickle
 import statsmodels.api as sm
 import seaborn as sns
+from sklearn.metrics import auc
 from scipy.stats import lognorm
 from scipy.stats import norm
 from scipy.stats import halfnorm
 from scipy.stats import gaussian_kde
 from scipy.stats import pearsonr
 from scipy.stats import spearmanr
+from scipy.stats import ks_2samp
 import scipy.optimize as opt
+from scipy.stats import entropy
+from scipy.spatial.distance import jensenshannon
+from scipy.special import kl_div
 from statsmodels.nonparametric.kernel_density import KDEMultivariate
 import pylab as PP
 
+def run_kstest(df1,df2,col,vals,sum_vals=False):
+    data1 = extract_columns(df1,col,vals)
+    data2 = extract_columns(df2,col,vals)
+    if(data1.ndim > 1):
+        if(sum_vals):
+            data1      = np.sum(data1,axis=1)
+            data2      = np.sum(data2,axis=1)
+            stat, pval = ks_2samp(data1,data2)
+        else:    
+            stat = np.zeros((data1.shape[1]))
+            pval = np.zeros((data1.shape[1]))
+            for i in range(0,data1.shape[1]):
+                stat[i], pval[i] = ks_2samp(data1[:,i],data2[:,i])
+    else:
+        stat, pval = ks_2samp(data1,data2)
+    return [stat, pval]
+
+def run_kldiv(df1,df2,col,vals,sum_vals=False,bins=100):
+    data1 = extract_columns(df1,col,vals)
+    data2 = extract_columns(df2,col,vals)
+    if(data1.ndim > 1):
+        if(sum_vals):
+            data1      = np.sum(data1,axis=1)
+            data2      = np.sum(data2,axis=1)
+            stat = compute_kl_divergence(data1,data2,bins)
+        else:    
+            stat = np.zeros((data1.shape[1]))
+            for i in range(0,data1.shape[1]):
+                stat[i] = compute_kl_divergence(data1[:,i],data2[:,i],bins)
+    else:
+        stat = compute_kl_divergence(data1,data2)
+    return stat
+
+def run_jsdiv(df1,df2,col,vals,sum_vals=False,bins=100):
+    data1 = extract_columns(df1,col,vals)
+    data2 = extract_columns(df2,col,vals)
+    if(data1.ndim > 1):
+        if(sum_vals):
+            data1      = np.sum(data1,axis=1)
+            data2      = np.sum(data2,axis=1)
+            stat = compute_js_divergence(data1,data2,bins)
+        else:    
+            stat = np.zeros((data1.shape[1]))
+            for i in range(0,data1.shape[1]):
+                stat[i] = compute_js_divergence(data1[:,i],data2[:,i],bins)
+    else:
+        stat = compute_js_divergence(data1,data2)
+    return stat
+
+def compute_probs(data, n=10): 
+    h, e = np.histogram(data, n)
+    p = h/data.shape[0]
+    return e, p
+
+def support_intersection(p, q): 
+    return list(filter(lambda x: (x[0]!=0) & (x[1]!=0), list(zip(p, q))))
+
+def get_probs(list_of_tuples): 
+    p = np.array([p[0] for p in list_of_tuples])
+    q = np.array([p[1] for p in list_of_tuples])
+    return p, q
+
+def kl_divergence(p, q): 
+    return np.sum(p*np.log(p/q))
+
+def js_divergence(p, q):
+    m = (1./2.)*(p + q)
+    return (1./2.)*kl_divergence(p, m) + (1./2.)*kl_divergence(q, m)
+
+def compute_kl_divergence(train_sample, test_sample, n_bins=10): 
+    """
+    Computes the KL Divergence using the support intersection between two different samples
+    """
+    e, p = compute_probs(train_sample, n=n_bins)
+    _, q = compute_probs(test_sample, n=e)
+
+    list_of_tuples = support_intersection(p, q)
+    p, q = get_probs(list_of_tuples)
+    
+    return kl_divergence(p, q)
+
+def compute_js_divergence(train_sample, test_sample, n_bins=10): 
+    """
+    Computes the JS Divergence using the support intersection between two different samples
+    """
+    e, p = compute_probs(train_sample, n=n_bins)
+    _, q = compute_probs(test_sample, n=e)
+    
+    list_of_tuples = support_intersection(p,q)
+    p, q = get_probs(list_of_tuples)
+    
+    return js_divergence(p, q)
+
+def run_kldiv(kde_samp1,kde_samp2,col,vals,sum_vals=False)
+    #data1 = extract_columns(df1,col,vals)
+    #data2 = extract_columns(df2,col,vals)
+    if(data1.ndim > 1):
+        if(sum_vals):
+            data1      = np.sum(data1,axis=1)
+            data2      = np.sum(data2,axis=1)
+            kl_log     = np.log(data1/data2)
+            kl         = np.sum(data1*kl_log)
+        else:    
+            stat = np.zeros((data1.shape[1]))
+            pval = np.zeros((data1.shape[1]))
+            for i in range(0,data1.shape[1]):
+                stat[i], pval[i] = ks_2samp(data1[:,i],data2[:,i])
+    else:
+        stat, pval = ks_2samp(data1,data2)
+    kl_log     = np.log(data1/data2)
+    kl         = np.sum(data1*kl_log) 
+    return [stat, pval]
 def plot_scatter_var(df,x,y,y_cols=None,swap=False):
     '''
     Scatter plot function x against y, y is usually variance (uncertainty)
@@ -261,6 +378,7 @@ def plot_roc_curves(df,col,vals,m_kde_tp,m_kde_fp,min_val=None,max_val=None):
             hits.append(ratios[0])
             f_a.append(ratios[2])
         plt.plot(f_a,hits,label='col {} vals {}'.format(col,vals))
+        print('auc: {}'.format(auc(f_a,hits)))
     else:
         return None
 
