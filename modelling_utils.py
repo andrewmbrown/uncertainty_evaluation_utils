@@ -230,10 +230,12 @@ def plot_scatter_var(df,x,y,y_cols=None,swap=False):
     #plt.text(1.2,0,'cov = %s %s  %s %s' %(covariance[0,0],covariance[0,1],covariance[1,0],covariance[1,1]))
     print('covariance=\n', covariance[0,0],covariance[0,1],'\n',covariance[1,0],covariance[1,1]) 
     print('correlation: {} spearman correlation: {}'.format(corr,scorr))
-def plot_histo_inverse_gamma(dets,scene,col,val,min_val=None,max_val=None):
+
+def plot_histo_inverse_gamma(df,scene,col,val,min_val=None,max_val=None,thresh=None):
     """
     Function to plot inverse gamma using uncertainty parameters
-    args: dataframe, dets, scenetype, minval, maxval, column(to be plotted), value(1 or all)
+    args: dataframe, scenetype, minval, maxval, column(to be plotted), value(1 or all), thresh (float 0-1)
+    if threshold value is given, filter all variance values above it  (elimate outliers)
 
     column can be a_bbox_var, e_bbox_var, a_cls_var, e_cls_var (4 or 7 values - 2d or 3d)
 
@@ -241,9 +243,9 @@ def plot_histo_inverse_gamma(dets,scene,col,val,min_val=None,max_val=None):
     3d - x_c, y_c, z_c, l, w, h, r_y (l2, w2)
     """
     fit = 1 
-    bboxes = dets.columns
+    bboxes = df.columns
 
-    data_arr = extract_columns(dets,col,val)
+    data_arr = extract_columns(df,col,val)
 
     if(fit):
         if (min_val == None and max_val == None):
@@ -252,6 +254,9 @@ def plot_histo_inverse_gamma(dets,scene,col,val,min_val=None,max_val=None):
         else:
             hist_range = (min_val,max_val)
             x = np.arange(min_val,max_val,.0001)
+        if thresh != None:
+            range = np.max(data_arr) - np.min(data_arr)
+            data_arr = data_arr[data_arr < range*thresh]
         shape,loc,scale = scipy_stats.invgamma.fit(data_arr)
         g1 = scipy_stats.invgamma.pdf(x=x, a=shape, loc=loc, scale=scale)
         plt.plot(x,g1,label='{} fitted_gamma: {:.3f} {:.3f} {:.3f}'.format(scene,shape,loc,scale))
@@ -263,10 +268,11 @@ def plot_histo_inverse_gamma(dets,scene,col,val,min_val=None,max_val=None):
         #plt.hist(data_arr,bins=200,range=[min_val,max_val],alpha=0.5,label=cil+': '+val,density=True,stacked=True)
     return 
 
-def plot_histo_KDE(df,scene,col,val,min_val=None,max_val=None):
+def plot_histo_KDE(df,scene,col,val,min_val=None,max_val=None,thresh=None):
     """
     Function to plot KDE using uncertainty parameters. Can specify or not specify range (min/max)
-    args: dataframe, dets, scenetype, column(to be plotted), value(1 or all), minval, maxval
+    args: dataframe, dets, scenetype, column(to be plotted), value(1 or all), minval, maxval, thresh (float 0-1)
+    if threshold value is given, filter all variance values above it  (elimate outliers)
 
     column can be a_bbox_var, e_bbox_var, a_cls_var, e_cls_var (4 or 7 values - 2d or 3d)
 
@@ -283,6 +289,9 @@ def plot_histo_KDE(df,scene,col,val,min_val=None,max_val=None):
             max_val = np.max(data_arr)
         hist_range = (min_val,max_val)
         x = np.arange(min_val,max_val,.0001)
+        if thresh != None:
+            range = np.max(data_arr) - np.min(data_arr)
+            data_arr = data_arr[data_arr < range*thresh]
 
         scipy_kernel = gaussian_kde(data_arr,bw_method=.035)  # kernel function centered on each datapoint
         pdf = scipy_kernel.evaluate(x)  # sum all functions together and normalize to obtain pdf
