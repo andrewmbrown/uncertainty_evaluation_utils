@@ -414,12 +414,17 @@ if __name__ == '__main__':
     #-------------------------
     if(manual_mode):
         args.root_dir    = os.path.join('/home','mat','thesis')
-        args.sensor_type = 'lidar'
-        args.dataset     = 'kitti'
-        args.det_file_1  = os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+aug_a_e_uc_4','test_results','results.txt')
+        args.sensor_type = 'image'
+        args.dataset     = 'waymo'
+        #KITTI LIDAR
+        #args.det_file_1  = os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+aug_a_e_uc_4','test_results','results.txt')
+        #KITTI IMAGE
+        #args.det_file_1  = os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+aug_a_e_uc','test_results','results.txt')
+        #WAYMO IMAGE
+        args.det_file_1  = os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+aug_a_e_uc','test_results','results.txt')
         args.out_dir     = os.path.join(args.root_dir,'eval_out')
         args.cache_dir   = os.path.join(args.root_dir,'eval_cache')
-        args.data_dir    = os.path.join(args.root_dir,'data')
+        args.data_dir    = os.path.join(args.root_dir,'data2')
     num_scenes = 210
     top_crop = 300
     bot_crop = 30
@@ -464,11 +469,12 @@ if __name__ == '__main__':
     #------------------------
     # Multivariate statistical testing
     #------------------------
-    vals = ['x_c','y_c','z_c','l2','w2','h','r_y']
-    kstest   = modelling_utils.run_kstest(df_tp,df_fp,'a_bbox_var',vals,sum_vals=True)
-    kldiv = modelling_utils.kl_divergence_2samp(df_tp,df_fp,'a_bbox_var',vals)
-    jsdiv = modelling_utils.js_divergence_2samp(df_tp,df_fp,'a_bbox_var',vals)
-    print('kstest: {} kldiv: {} jsdiv {}'.format(kstest,kldiv,jsdiv))
+    #vals = ['x_c','y_c','z_c','l2','w2','h','r_y']
+    #vals  = ['x_c']
+    #kstest   = modelling_utils.run_kstest(df_tp,df_fp,'a_bbox_var',vals,sum_vals=True)
+    #kldiv = modelling_utils.run_kldiv(df_tp,df_fp,'a_bbox_var',vals,sum_vals=True)
+    #jsdiv = modelling_utils.run_jsdiv(df_tp,df_fp,'a_bbox_var',vals,sum_vals=True)
+    #print('kstest: {} kldiv: {} jsdiv {}'.format(kstest,kldiv,jsdiv))
 
     #------------------------
     # Multivariate KDE generation and ROC curve generation
@@ -480,8 +486,6 @@ if __name__ == '__main__':
     modelling_utils.plot_roc_curves(df,'a_bbox_var',vals,m_kde_tp,m_kde_fp)
     #https://stats.stackexchange.com/questions/57885/how-to-interpret-p-value-of-kolmogorov-smirnov-test-python
     #Also should run KL and Wilcoxon
-
-
     vals = ['x_c','y_c','z_c','l2','w2','h','r_y']
     m_kde_tp = modelling_utils.plot_histo_multivariate_KDE(df_tp,'TP','e_bbox_var',vals,plot=False)
     m_kde_fp = modelling_utils.plot_histo_multivariate_KDE(df_fp,'FP','e_bbox_var',vals,plot=False)
@@ -507,6 +511,41 @@ if __name__ == '__main__':
     #vals = None
     #modelling_utils.plot_box_plot(df,'a_bbox_var',vals)
 
+
+    #------------------------
+    # Mat's Custom Script
+    #------------------------
+    #param  = 'all_var'
+    #param = 'e_bbox_var,a_bbox_var'
+    #param  = 'e_cls_var,a_cls_var'
+    param = 'e_cls_var'
+    #vals = ['w1']
+    #vals  = ['l1','w1']
+    vals = ['fg','bg']
+    #vals = ['x_c','y_c','l1','w1']
+    #vals = ['w1']
+    #vals = ['x_c','y_c','z_c','l2','w2','h','r_y']
+    #vals  = ['bg']
+    #vals = ['l2','w2','h']
+    #Multi-UC val lists
+    #vals = ['e_x_c','e_y_c','e_z_c','e_l2','e_w2','e_h','e_r_y','e_fg','e_bg','a_x_c','a_y_c','a_z_c','a_l2','a_w2','a_h','a_r_y','a_fg','a_bg']
+    #vals = ['e_fg','e_bg','a_fg','a_bg']
+    #vals = ['e_x_c','e_y_c','e_z_c','e_l2','e_w2','e_h','e_r_y','a_x_c','a_y_c','a_z_c','a_l2','a_w2','a_h','a_r_y']
+    #vals = ['e_x_c','e_y_c','e_l','e_w','a_x_c','a_y_c','a_l','a_w','e_fg','e_bg','a_fg','a_bg']
+    #kstest   = modelling_utils.run_kstest(df_tp,df_fp,param,vals,sum_vals=True)
+    is_summed = False
+    kldiv = modelling_utils.run_kldiv(df_tp,df_fp,param,vals,sum_vals=is_summed)
+    print('kldiv: {} summed: {}'.format(kldiv,is_summed))
+    #jsdiv = modelling_utils.run_jsdiv(df_tp,df_fp,param,vals,sum_vals=False)
+    #print('kstest: {} kldiv: {} jsdiv {}'.format(kstest,kldiv,np.sum(jsdiv)))
+    #box_stats = modelling_utils.plot_box_plot(df,param,vals,plot=False)
+    #print('box_plot: mean: {:.3f} median: {:.3f} [Q1,Q3]: [{:.3f},{:.3f}] [min,max]: [{:.3f},{:.3f}]'.format(box_stats[0],box_stats[1],box_stats[2],box_stats[3],box_stats[4],box_stats[5]))
+    #plt.rcParams.update({'font.size': 16})
+    m_kde_fp = modelling_utils.plot_histo_multivariate_KDE(df_fp,'FP',param,vals,min_val=0, plot=True)
+    m_kde_tp = modelling_utils.plot_histo_multivariate_KDE(df_tp,'TP',param,vals,min_val=0, plot=True)
+
+    #m_kde = modelling_utils.plot_histo_multivariate_KDE(df,'All',param,vals,min_val=0, plot=False)
+    #modelling_utils.plot_roc_curves(df,param,vals,m_kde_tp,m_kde_fp,limiter=10000)
     plt.legend()
     plt.show()
 
