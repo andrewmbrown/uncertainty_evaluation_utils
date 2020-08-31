@@ -389,6 +389,12 @@ def plot_box_plot(df,col,vals,plot=False):
 #Plot ROC by sweeping density_thresh
 def plot_roc_curves(df,col,vals,m_kde_tp,m_kde_fp,min_val=None,max_val=None,limiter=0):
     data = extract_columns(df,col,vals)
+    if(limiter != 0):
+        print(len(df.index))
+        frac = (limiter+0.1)/(len(df.index)+0.1)
+        df = df.sample(frac=1)
+        df = df.sample(frac=frac)
+        print(len(df.index))
     f_a  = []
     hits = []
     signal_tp = np.asarray(df['difficulty'].to_list(),dtype=np.int32)
@@ -475,7 +481,7 @@ def plot_histo_multivariate_KDE(df,plotname,col,vals,min_val=None,max_val=None,p
     else:
         min_val = np.ones((data_arr.shape[1]))*min_val
     if(max_val is None):
-        max_val = np.max(data_arr,axis=0)
+        max_val = np.ones((data_arr.shape[1]))*np.max(data_arr)
     else:
         max_val = np.ones((data_arr.shape[1]))*max_val
     ranges = np.linspace(min_val,max_val,bins)
@@ -508,6 +514,15 @@ def plot_histo_multivariate_KDE(df,plotname,col,vals,min_val=None,max_val=None,p
     h = multivariate_kernel.bw
     #Accent, Accent_r, Blues, Blues_r, BrBG, BrBG_r, BuGn, BuGn_r, BuPu, BuPu_r, CMRmap, CMRmap_r, Dark2, Dark2_r, GnBu, GnBu_r, Greens, Greens_r, Greys, Greys_r, OrRd, OrRd_r, Oranges, Oranges_r, PRGn, PRGn_r, Paired, Paired_r, Pastel1, Pastel1_r, Pastel2, Pastel2_r, PiYG, PiYG_r, PuBu, PuBuGn, PuBuGn_r, PuBu_r, PuOr, PuOr_r, PuRd, PuRd_r, Purples, Purples_r, RdBu, RdBu_r, RdGy, RdGy_r, RdPu, RdPu_r, RdYlBu, RdYlBu_r, RdYlGn, RdYlGn_r, Reds, Reds_r, Set1, Set1_r, Set2, Set2_r, Set3, Set3_r, Spectral, Spectral_r, Wistia, Wistia_r, YlGn, YlGnBu, YlGnBu_r, YlGn_r, YlOrBr, YlOrBr_r, YlOrRd, YlOrRd_r, afmhot, afmhot_r, autumn, autumn_r, binary, binary_r, bone, bone_r, brg, brg_r, bwr, bwr_r, cividis, cividis_r, cool, cool_r, coolwarm, coolwarm_r, copper, copper_r, cubehelix, cubehelix_r, flag, flag_r, gist_earth, gist_earth_r, gist_gray, gist_gray_r, gist_heat, gist_heat_r, gist_ncar, gist_ncar_r, gist_rainbow, gist_rainbow_r, gist_stern, gist_stern_r, gist_yarg, gist_yarg_r, gnuplot, gnuplot2, gnuplot2_r, gnuplot_r, gray, gray_r, hot, hot_r, hsv, hsv_r, icefire, icefire_r, inferno, inferno_r, jet, jet_r, magma, magma_r, mako, mako_r, nipy_spectral, nipy_spectral_r, ocean, ocean_r, pink, pink_r, plasma, plasma_r, prism, prism_r, rainbow, rainbow_r, rocket, rocket_r, seismic, seismic_r, spring, spring_r, summer, summer_r, tab10, tab10_r, tab20, tab20_r, tab20b, tab20b_r, tab20c, tab20c_r, terrain, terrain_r, twilight, twilight_r, twilight_shifted, twilight_shifted_r, viridis, viridis_r, vlag, vlag_r, winter, winter_r
     if(plot):
+        label_vals = []
+        for i in range(0,len(vals)):
+            if(vals[i] == 'l1' or vals[i] == 'l2'):
+                label_vals.append('l')
+            elif(vals[i] == 'w1' or vals[i] == 'w2'):
+                label_vals.append('w')
+            else:
+                label_vals.append(vals[i])
+
         #if(num_col == 1):
         #    pdf_eval = multivariate_kernel.pdf(ranges)
         #    if(vals is None):
@@ -529,13 +544,14 @@ def plot_histo_multivariate_KDE(df,plotname,col,vals,min_val=None,max_val=None,p
                 c_map = 'Reds'
             else:
                 c_map = 'Accent'
-                contour_name = '{}, {}'.format(col,vals)
+                contour_name = '{}, {}'.format(col,label_vals)
             contour = plt.contourf(x_list[:,:,0],x_list[:,:,1],pdf_eval, cmap=c_map, label=contour_name, alpha=0.5)
             #plt.clabel(contour, inline=True, fontsize=8)#
             #plt.imshow(pdf_eval, extent=[0, np.max(x_list[:,:,0])*0.80, 0, np.max(x_list[:,:,1])*0.80], origin='lower',
             #cmap=c_map, alpha=0.5)
-            plt.xlabel('\u03C3[{}]^2'.format(vals[0]))
-            plt.ylabel('\u03C3[{}]^2'.format(vals[1]))
+            #Gross, eh? :)
+            plt.xlabel('\u03C3[{}]^2'.format(label_vals[0]))
+            plt.ylabel('\u03C3[{}]^2'.format(label_vals[1]))
             plt.title(col)
             clb = plt.colorbar()
             clb.ax.set_title(contour_name,pad=20)
@@ -545,7 +561,7 @@ def plot_histo_multivariate_KDE(df,plotname,col,vals,min_val=None,max_val=None,p
             elif(plotname == 'FP'):
                 plotname = 'False Positives'
             for i in range(0,data_arr.shape[1]):
-                labelname = plotname + ': ' + vals[i]
+                labelname = plotname + ': ' + label_vals[i]
                 plt.hist(data_arr[:,i],bins=200,range=(min_val[i],max_val[i]),alpha=0.5,label=labelname,density=True,stacked=True) 
             plt.xlabel('\u03C3^2')
             plt.ylabel('density')
