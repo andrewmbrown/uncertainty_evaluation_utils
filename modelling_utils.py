@@ -460,10 +460,8 @@ def plot_histo_multivariate_KDE(df,plotname,col,vals,min_val=None,max_val=None,p
     column can be a_bbox_var, e_bbox_var, a_cls_var, e_cls_var (4 or 7 values - 2d or 3d)
 
     """
-    fit = 1
     x_list = []
     col_vals = []
-    found = False
     if(vals is not None):
         num_col = len(vals)
     else:
@@ -472,87 +470,86 @@ def plot_histo_multivariate_KDE(df,plotname,col,vals,min_val=None,max_val=None,p
     data_arr = extract_columns(df,col,vals)
     if(data_arr is None):
         return None
-    if(fit):
-        if(min_val is None):
-            min_val = np.min(data_arr,axis=0)
-        else:
-            min_val = np.ones((data_arr.shape[1]))*min_val
-        if(max_val is None):
-            max_val = np.max(data_arr,axis=0)
-        else:
-            max_val = np.ones((data_arr.shape[1]))*max_val
-        ranges = np.linspace(min_val,max_val,bins)
-        hist_range = (min_val,max_val)
-        
-        #myPDF,axes = fastKDE.pdf(data_arr[0,:],data_arr[1,:])
-        #Extract the axes from the axis list
-        #v1,v2 = axes
+    if(min_val is None):
+        min_val = np.min(data_arr,axis=0)
+    else:
+        min_val = np.ones((data_arr.shape[1]))*min_val
+    if(max_val is None):
+        max_val = np.max(data_arr,axis=0)
+    else:
+        max_val = np.ones((data_arr.shape[1]))*max_val
+    ranges = np.linspace(min_val,max_val,bins)
+    hist_range = (min_val,max_val)
+    
+    #myPDF,axes = fastKDE.pdf(data_arr[0,:],data_arr[1,:])
+    #Extract the axes from the axis list
+    #v1,v2 = axes
 
-        #Plot contours of the PDF should be a set of concentric ellipsoids centered on
-        #(0.1, -300) Comparitively, the y axis range should be tiny and the x axis range
-        #should be large
-        #PP.contour(v1,v2,myPDF)
-        #PP.show()
+    #Plot contours of the PDF should be a set of concentric ellipsoids centered on
+    #(0.1, -300) Comparitively, the y axis range should be tiny and the x axis range
+    #should be large
+    #PP.contour(v1,v2,myPDF)
+    #PP.show()
 
-        #df = pd.DataFrame({'x_c': data_arr[:,0], 'y_c': data_arr[:, 0]})
-        #sns.jointplot(x='x_c',y='y_c', data=df, kind='kde')
-        #scipy_kernel = gaussian_kde(data_arr,bw_method=.035)  # kernel function centered on each datapoint
-        #pdf = scipy_kernel.evaluate(x_list)  # sum all functions together and normalize to obtain pdf
-        #plt.plot(x_list[0,:],pdf)
-        #plt.show()
-        
+    #df = pd.DataFrame({'x_c': data_arr[:,0], 'y_c': data_arr[:, 0]})
+    #sns.jointplot(x='x_c',y='y_c', data=df, kind='kde')
+    #scipy_kernel = gaussian_kde(data_arr,bw_method=.035)  # kernel function centered on each datapoint
+    #pdf = scipy_kernel.evaluate(x_list)  # sum all functions together and normalize to obtain pdf
+    #plt.plot(x_list[0,:],pdf)
+    #plt.show()
+    
 
-        #x_mesh = np.meshgrid(x_list[:,0],x_list[:,1])
-        #x_mesh = x_mesh.swapaxes(0,2)
-        v_type = ''
-        for i in range(0,data_arr.shape[1]):
-            v_type = v_type + 'c'
-        multivariate_kernel = sm.nonparametric.KDEMultivariate(data_arr, var_type=v_type, bw='normal_reference')
-        h = multivariate_kernel.bw
-        #Accent, Accent_r, Blues, Blues_r, BrBG, BrBG_r, BuGn, BuGn_r, BuPu, BuPu_r, CMRmap, CMRmap_r, Dark2, Dark2_r, GnBu, GnBu_r, Greens, Greens_r, Greys, Greys_r, OrRd, OrRd_r, Oranges, Oranges_r, PRGn, PRGn_r, Paired, Paired_r, Pastel1, Pastel1_r, Pastel2, Pastel2_r, PiYG, PiYG_r, PuBu, PuBuGn, PuBuGn_r, PuBu_r, PuOr, PuOr_r, PuRd, PuRd_r, Purples, Purples_r, RdBu, RdBu_r, RdGy, RdGy_r, RdPu, RdPu_r, RdYlBu, RdYlBu_r, RdYlGn, RdYlGn_r, Reds, Reds_r, Set1, Set1_r, Set2, Set2_r, Set3, Set3_r, Spectral, Spectral_r, Wistia, Wistia_r, YlGn, YlGnBu, YlGnBu_r, YlGn_r, YlOrBr, YlOrBr_r, YlOrRd, YlOrRd_r, afmhot, afmhot_r, autumn, autumn_r, binary, binary_r, bone, bone_r, brg, brg_r, bwr, bwr_r, cividis, cividis_r, cool, cool_r, coolwarm, coolwarm_r, copper, copper_r, cubehelix, cubehelix_r, flag, flag_r, gist_earth, gist_earth_r, gist_gray, gist_gray_r, gist_heat, gist_heat_r, gist_ncar, gist_ncar_r, gist_rainbow, gist_rainbow_r, gist_stern, gist_stern_r, gist_yarg, gist_yarg_r, gnuplot, gnuplot2, gnuplot2_r, gnuplot_r, gray, gray_r, hot, hot_r, hsv, hsv_r, icefire, icefire_r, inferno, inferno_r, jet, jet_r, magma, magma_r, mako, mako_r, nipy_spectral, nipy_spectral_r, ocean, ocean_r, pink, pink_r, plasma, plasma_r, prism, prism_r, rainbow, rainbow_r, rocket, rocket_r, seismic, seismic_r, spring, spring_r, summer, summer_r, tab10, tab10_r, tab20, tab20_r, tab20b, tab20b_r, tab20c, tab20c_r, terrain, terrain_r, twilight, twilight_r, twilight_shifted, twilight_shifted_r, viridis, viridis_r, vlag, vlag_r, winter, winter_r
-        if(plot):
-            #if(num_col == 1):
-            #    pdf_eval = multivariate_kernel.pdf(ranges)
-            #    if(vals is None):
-            #        val_str = ''
-            #    else:
-            #        val_str = ' : {}'.format(vals[0])
-            #    labelname = plotname + val_str
-            #    #plt.plot(ranges,pdf_eval)
-            #    plt.hist(data_arr[:,0],bins=bins,range=(min_val[0],max_val[0]),alpha=0.5,label=labelname,density=True,stacked=True)
-            if(num_col == 2):
-                x_list  = np.swapaxes(np.asarray(np.meshgrid(ranges[:,0],ranges[:,1])),0,2)
-                pdf_eval = multivariate_kernel.pdf(x_list.reshape(-1,num_col))
-                pdf_eval = pdf_eval.reshape(bins,bins)
-                if(plotname == 'TP'):
-                    contour_name = 'True Positives'
-                    c_map = 'Blues'
-                elif(plotname == 'FP'):
-                    contour_name = 'False Positives'
-                    c_map = 'Reds'
-                else:
-                    c_map = 'Accent'
-                    contour_name = '{}, {}'.format(col,vals)
-                contour = plt.contourf(x_list[:,:,0],x_list[:,:,1],pdf_eval, cmap=c_map, label=contour_name, alpha=0.5)
-                #plt.clabel(contour, inline=True, fontsize=8)#
-                #plt.imshow(pdf_eval, extent=[0, np.max(x_list[:,:,0])*0.80, 0, np.max(x_list[:,:,1])*0.80], origin='lower',
-                #cmap=c_map, alpha=0.5)
-                plt.xlabel('\u03C3[{}]^2'.format(vals[0]))
-                plt.ylabel('\u03C3[{}]^2'.format(vals[1]))
-                plt.title(col)
-                clb = plt.colorbar()
-                clb.ax.set_title(contour_name,pad=20)
+    #x_mesh = np.meshgrid(x_list[:,0],x_list[:,1])
+    #x_mesh = x_mesh.swapaxes(0,2)
+    v_type = ''
+    for i in range(0,data_arr.shape[1]):
+        v_type = v_type + 'c'
+    multivariate_kernel = sm.nonparametric.KDEMultivariate(data_arr, var_type=v_type, bw='normal_reference')
+    h = multivariate_kernel.bw
+    #Accent, Accent_r, Blues, Blues_r, BrBG, BrBG_r, BuGn, BuGn_r, BuPu, BuPu_r, CMRmap, CMRmap_r, Dark2, Dark2_r, GnBu, GnBu_r, Greens, Greens_r, Greys, Greys_r, OrRd, OrRd_r, Oranges, Oranges_r, PRGn, PRGn_r, Paired, Paired_r, Pastel1, Pastel1_r, Pastel2, Pastel2_r, PiYG, PiYG_r, PuBu, PuBuGn, PuBuGn_r, PuBu_r, PuOr, PuOr_r, PuRd, PuRd_r, Purples, Purples_r, RdBu, RdBu_r, RdGy, RdGy_r, RdPu, RdPu_r, RdYlBu, RdYlBu_r, RdYlGn, RdYlGn_r, Reds, Reds_r, Set1, Set1_r, Set2, Set2_r, Set3, Set3_r, Spectral, Spectral_r, Wistia, Wistia_r, YlGn, YlGnBu, YlGnBu_r, YlGn_r, YlOrBr, YlOrBr_r, YlOrRd, YlOrRd_r, afmhot, afmhot_r, autumn, autumn_r, binary, binary_r, bone, bone_r, brg, brg_r, bwr, bwr_r, cividis, cividis_r, cool, cool_r, coolwarm, coolwarm_r, copper, copper_r, cubehelix, cubehelix_r, flag, flag_r, gist_earth, gist_earth_r, gist_gray, gist_gray_r, gist_heat, gist_heat_r, gist_ncar, gist_ncar_r, gist_rainbow, gist_rainbow_r, gist_stern, gist_stern_r, gist_yarg, gist_yarg_r, gnuplot, gnuplot2, gnuplot2_r, gnuplot_r, gray, gray_r, hot, hot_r, hsv, hsv_r, icefire, icefire_r, inferno, inferno_r, jet, jet_r, magma, magma_r, mako, mako_r, nipy_spectral, nipy_spectral_r, ocean, ocean_r, pink, pink_r, plasma, plasma_r, prism, prism_r, rainbow, rainbow_r, rocket, rocket_r, seismic, seismic_r, spring, spring_r, summer, summer_r, tab10, tab10_r, tab20, tab20_r, tab20b, tab20b_r, tab20c, tab20c_r, terrain, terrain_r, twilight, twilight_r, twilight_shifted, twilight_shifted_r, viridis, viridis_r, vlag, vlag_r, winter, winter_r
+    if(plot):
+        #if(num_col == 1):
+        #    pdf_eval = multivariate_kernel.pdf(ranges)
+        #    if(vals is None):
+        #        val_str = ''
+        #    else:
+        #        val_str = ' : {}'.format(vals[0])
+        #    labelname = plotname + val_str
+        #    #plt.plot(ranges,pdf_eval)
+        #    plt.hist(data_arr[:,0],bins=bins,range=(min_val[0],max_val[0]),alpha=0.5,label=labelname,density=True,stacked=True)
+        if(num_col == 2):
+            x_list  = np.swapaxes(np.asarray(np.meshgrid(ranges[:,0],ranges[:,1])),0,2)
+            pdf_eval = multivariate_kernel.pdf(x_list.reshape(-1,num_col))
+            pdf_eval = pdf_eval.reshape(bins,bins)
+            if(plotname == 'TP'):
+                contour_name = 'True Positives'
+                c_map = 'Blues'
+            elif(plotname == 'FP'):
+                contour_name = 'False Positives'
+                c_map = 'Reds'
             else:
-                if(plotname == 'TP'):
-                    plotname = 'True Positives'
-                elif(plotname == 'FP'):
-                    plotname = 'False Positives'
-                for i in range(0,data_arr.shape[1]):
-                    labelname = plotname + ': ' + vals[i]
-                    plt.hist(data_arr[:,i],bins=200,range=(min_val[i],max_val[i]),alpha=0.5,label=labelname,density=True,stacked=True) 
-                plt.xlabel('\u03C3^2')
-                plt.ylabel('density')
-                plt.title(col)
+                c_map = 'Accent'
+                contour_name = '{}, {}'.format(col,vals)
+            contour = plt.contourf(x_list[:,:,0],x_list[:,:,1],pdf_eval, cmap=c_map, label=contour_name, alpha=0.5)
+            #plt.clabel(contour, inline=True, fontsize=8)#
+            #plt.imshow(pdf_eval, extent=[0, np.max(x_list[:,:,0])*0.80, 0, np.max(x_list[:,:,1])*0.80], origin='lower',
+            #cmap=c_map, alpha=0.5)
+            plt.xlabel('\u03C3[{}]^2'.format(vals[0]))
+            plt.ylabel('\u03C3[{}]^2'.format(vals[1]))
+            plt.title(col)
+            clb = plt.colorbar()
+            clb.ax.set_title(contour_name,pad=20)
+        else:
+            if(plotname == 'TP'):
+                plotname = 'True Positives'
+            elif(plotname == 'FP'):
+                plotname = 'False Positives'
+            for i in range(0,data_arr.shape[1]):
+                labelname = plotname + ': ' + vals[i]
+                plt.hist(data_arr[:,i],bins=200,range=(min_val[i],max_val[i]),alpha=0.5,label=labelname,density=True,stacked=True) 
+            plt.xlabel('\u03C3^2')
+            plt.ylabel('density')
+            plt.title(col)
             
         #plt.show()
         #x = np.linspace(np.min(data_arr[0,:]),np.max(data_arr[0,:]),len(pdf))

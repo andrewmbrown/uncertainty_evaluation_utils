@@ -46,7 +46,7 @@ def ap(rec, prec):
     ap = np.sum((mrec[i + 1] - mrec[i]) * mpre[i + 1])
     return ap
 
-def count_cadc_npos(gt_path,df):
+def count_cadc_npos(df,data_dir,sensor_type):
     """
     Function to calculate total number of ground truths from kitti dataset
     Use the split val.txt to index label files. In each label file count instances of "car" detections
@@ -56,7 +56,7 @@ def count_cadc_npos(gt_path,df):
     #npos += cadc_label_npos(gt_path,stripped_line)
     det_idx = 0
     npos = np.zeros(3)
-    cadc_gt_path = os.path.join(gt_path,'val','annotation_00')
+    cadc_gt_path = os.path.join(data_dir,'val','annotation_00')
     labels = os.listdir(cadc_gt_path)
     frame_idx = np.asarray(df['frame_idx'])
     unique_idx = np.unique(np.sort(frame_idx), axis=0)
@@ -66,7 +66,7 @@ def count_cadc_npos(gt_path,df):
         if det_idx == len(unique_idx):
             break
         if (unique_idx[det_idx] == label_int):
-            npos += cadc_label_npos(gt_path+'/val',label.replace('.txt',''))
+            npos += cadc_label_npos(data_dir+'/val',label.replace('.txt',''))
             det_idx += 1
     
     return npos
@@ -95,7 +95,7 @@ def cadc_label_npos(path,filename):
                 count[0:3] += 1
     return count
 
-def count_kitti_npos(gt_path,df):
+def count_kitti_npos(df,data_dir,sensor_type):
     """
     Function to calculate total number of ground truths from kitti dataset
     Use the split val.txt to index label files. In each label file count instances of "car" detections
@@ -110,8 +110,8 @@ def count_kitti_npos(gt_path,df):
     idx = frame_idx  
     idx_sorted = np.sort(idx)
     unique_idx = np.unique(idx_sorted, axis=0)
-    kitti_gt_path = os.path.join(gt_path,'training','label_2')
-    val_split_file = os.path.join(gt_path,'splits','val.txt')
+    kitti_gt_path = os.path.join(data_dir,'training','label_2')
+    val_split_file = os.path.join(data_dir,'splits','val.txt')
     with open(val_split_file, "r") as file:
         for line in file:
             labels.append(line.strip())
@@ -167,13 +167,14 @@ def unique(list):
             unique_list.append(x)
     return unique_list
 
-def count_npos(gt_file, df):
+def count_npos(df,data_dir,sensor_type):
     """
     Function to calculate the total number of ground truths from a dataset. 
     npos = tp + fn (used in AP calculation)
     args: detection file, df 
     returns: npos 
     """
+    gt_file = os.path.join(data_dir,'val','labels','{}_labels.json'.format(sensor_type))
     with open(gt_file,'r') as labels_file:
         labels   = json.loads(labels_file.read())
     npos = np.zeros(3)
@@ -198,10 +199,10 @@ def count_npos(gt_file, df):
                         npos[1:3] += 1
                     elif difficulty == 2:
                         npos[2] += 1
-        det_idx += 1
+            det_idx += 1
     return npos
 
-def calculate_ap(df,d_levels,gt_path=None,gt_file=None):
+def calculate_ap(df,d_levels,data_dir,sensor_type,plot=False):
     """
     Function to calulate average precision by using tp and fp from dataframe. 
     tp when an associated ground truth exists. if no bbgt then fp. 
@@ -214,27 +215,27 @@ def calculate_ap(df,d_levels,gt_path=None,gt_file=None):
     mrec = np.zeros((d_levels,))
     mprec = np.zeros((d_levels,))
 
-    if 'cadc' in gt_path:
-        npos = count_cadc_npos(gt_path,df)
-    elif 'kitti' in gt_path:  # detection_file still in scope
-        npos = count_kitti_npos(gt_path,df)
+    if 'cadc' in data_dir:
+        npos = count_cadc_npos(df,data_dir,sensor_type)
+    elif 'kitti' in data_dir:  # detection_file still in scope
+        npos = count_kitti_npos(df,data_dir,sensor_type)
     else:
-        npos = count_npos(gt_file,df)
+        npos = count_npos(df,data_dir,sensor_type)
     df_sorted = df.sort_values(by='confidence',ascending=False)
-
-    for index, row in df_sorted.iterrows():
+    for i in range(0,len(df_sorted.index)):
+        row = df_sorted.iloc[i]
         # loop through each detection and mark as either tp or fp 
-        if (row['difficulty'] == -1):
-            fp[index,0] += 1
-            fp[index,1] += 1
-            fp[index,2] += 1
+        if (row['fp'] == 1):
+            fp[i,0] += 1
+            fp[i,1] += 1
+            fp[i,2] += 1
             continue
         if (row['difficulty'] <= 2):
-            tp[index,2] += 1
+            tp[i,2] += 1
         if (row['difficulty'] <= 1):
-            tp[index,1] += 1
+            tp[i,1] += 1
         if (row['difficulty'] <= 0):
-            tp[index,0] += 1
+            tp[i,0] += 1
             
     tp_sum = np.cumsum(tp,axis=0)
     fp_sum = np.cumsum(fp,axis=0)
@@ -246,11 +247,12 @@ def calculate_ap(df,d_levels,gt_path=None,gt_file=None):
         mprec[i]  = np.average(prec)
         mrec[i] = np.average(rec)
         map[i] = ap(rec, prec)
-        plt.plot(rec,prec)
-        plt.xlabel('recall')
-        plt.ylabel('precision')
-        plt.legend()
-        plt.show()
+        if(plot):
+            plt.plot(rec,prec)
+            plt.xlabel('recall')
+            plt.ylabel('precision')
+            plt.legend()
+            plt.show()
     print(map)
     return mrec,mprec,map
 

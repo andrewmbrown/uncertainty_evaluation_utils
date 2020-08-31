@@ -156,20 +156,20 @@ def parse_labels(dets_df, gt_file):
         scene_type = label['scene_type'][0]
         tod = scene_type['tod']
         weather = scene_type['weather']
-        scene_name = label['scene_name']
+        scene_name   = label['scene_name']
         assoc_frame  = label['assoc_frame']
-        scene_idx  = int(int(label['assoc_frame'])/1000)
-        calibration = label['calibration']  # for transforming 3d to 2d
+        scene_idx    = int(int(label['assoc_frame'])/1000)
+        calibration  = label['calibration']  # for transforming 3d to 2d
 
         if(scene_idx not in scene_name_dict.keys()):
-            scene_name_dict[scene_idx] = scene_name
-            weather_dict[scene_idx]    = weather
-            tod_dict[scene_idx]        = tod
+            scene_name_dict[scene_idx]  = scene_name
+            weather_dict[scene_idx]     = weather
+            tod_dict[scene_idx]         = tod
             calibration_dict[scene_idx] = calibration
-    full_df = dets_df
-    full_df['scene_name'] = full_df['scene_idx'].map(scene_name_dict)
-    full_df['weather'] = full_df['scene_idx'].map(weather_dict)
-    full_df['tod'] = full_df['scene_idx'].map(tod_dict)
+    full_df                = dets_df
+    full_df['scene_name']  = full_df['scene_idx'].map(scene_name_dict)
+    full_df['weather']     = full_df['scene_idx'].map(weather_dict)
+    full_df['tod']         = full_df['scene_idx'].map(tod_dict)
     full_df['calibration'] = full_df['scene_idx'].map(calibration_dict)
     return full_df
 
@@ -344,7 +344,7 @@ def draw_filtered_detections(df,out_dir,data_dir):
             draw.rectangle(row[bbdets_column])  # must draw as for loop will iterate off detection
             idx = current_idx  # update idx
 
-def get_df(dataset,cache_dir,dets_file,data_dir,sensor_type):
+def get_df(dataset,cache_dir,dets_file,data_dir,sensor_type,limiter=0):
         """
     Return the database of ground-truth regions of interest.
 
@@ -362,45 +362,27 @@ def get_df(dataset,cache_dir,dets_file,data_dir,sensor_type):
                 except:
                     df = pickle.load(fid, encoding='bytes')
             print('df loaded from {}'.format(cache_file))
-            return df
-
-        df = []
-        with open(dets_file) as det_file:
-            dets_df  = parse_dets(det_file.readlines(),sensor_type)
-        if (dataset == 'kitti'):
-            df = dets_df
-        elif(dataset == 'cadc'):
-            scene_file = os.path.join(data_dir,'cadc_scene_description.csv')
-            df = cadc_parse_labels(dets_df,scene_file)
         else:
-            df = parse_labels(dets_df, gt_file)
+            df = []
+            with open(dets_file) as det_file:
+                dets_df  = parse_dets(det_file.readlines(),sensor_type)
+            if (dataset == 'kitti'):
+                df = dets_df
+            elif(dataset == 'cadc'):
+                scene_file = os.path.join(data_dir,'cadc_scene_description.csv')
+                df = cadc_parse_labels(dets_df,scene_file)
+            else:
+                df = parse_labels(dets_df, gt_file)
 
-        with open(cache_file, 'wb') as fid:
-            pickle.dump(df, fid, pickle.HIGHEST_PROTOCOL)
-        print('df wrote to {}'.format(cache_file))
-
+            with open(cache_file, 'wb') as fid:
+                pickle.dump(df, fid, pickle.HIGHEST_PROTOCOL)
+            print('df wrote to {}'.format(cache_file))
+        if(limiter != 0):
+            print(len(df.index))
+            frac = (limiter+0.1)/(len(df.index)+0.1)
+            df = df.sample(frac=frac)
+            print(len(df.index))
         return df
-
-#dataset  = 'waymo'
-#sensor_type = 'lidar'
-#homepath = '/home/mat/thesis/'
-#if(dataset == 'waymo'):
-#    data_dir = 'data2'
-#else:
-#    data_dir = 'data'
-#datapath = os.path.join(homepath,data_dir,dataset)
-#projpath  = os.path.join(homepath,'faster_rcnn_pytorch_multimodal')
-#imgpath = datapath + '/data2/waymo/val/images/'  # can join these later for completion
-#savepath = datapath + '/2d_uncertainty_drawn/'
-#splitpath = datapath + '/faster_rcnn_pytorch_multimodal/tools/splits/'
-#cadc_gt_path = os.path.join(datapath,'val','annotation_00') 
-#kitti_gt_path = os.path.join(datapath,'training','label_2')
-#detection_file = os.path.join(projpath,'final_releases',sensor_type,dataset,'base+aug_a_e_uc_2c','3d_test_results','3d_results.txt')
-#val_split_file = os.path.join(datapath,'splits','val.txt')  # from kitti validation
-#scene_file = os.path.join(datapath,'cadc_scene_description.csv')
-#cache_dir = os.path.join(datapath,'cache_dir')
-#gt_file        = os.path.join(datapath,'val','labels','{}_labels.json'.format(sensor_type))
-#column_names = ['assoc_frame','scene_idx','frame_idx','bbdet','a_cls_var','a_cls_entropy','a_cls_mutual_info','e_cls_entropy','e_cls_mutual_info','a_bbox_var','e_bbox_var','track_idx','difficulty','pts','cls_idx','bbgt']
 
 """
 2d - x_c, y_c, l1, w1
@@ -421,7 +403,7 @@ if __name__ == '__main__':
         #KITTI IMAGE
         #args.det_file_1  = os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+aug_a_e_uc','test_results','results.txt')
         #WAYMO IMAGE
-        args.det_file_1  = os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+aug_a_e_uc','test_results','results.txt')
+        args.det_file_1  = os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+aug_a_e_uc','test_results_2','results.txt')
         args.out_dir     = os.path.join(args.root_dir,'eval_out')
         args.cache_dir   = os.path.join(args.root_dir,'eval_cache')
         args.data_dir    = os.path.join(args.root_dir,'data2')
@@ -437,7 +419,7 @@ if __name__ == '__main__':
         gt_file = os.path.join(data_dir,'val','labels','{}_labels.json'.format(args.sensor_type))
     else:
         gt_file = ''
-    df = get_df(args.dataset,args.cache_dir,args.det_file_1,data_dir,args.sensor_type)
+    df = get_df(args.dataset,args.cache_dir,args.det_file_1,data_dir,args.sensor_type,limiter=0)
 
     #-------------------------
     # Example filters for data
@@ -445,7 +427,7 @@ if __name__ == '__main__':
     #df    = df.loc[df['confidence'] > 0.5]
     #df   = df.loc[df['confidence'] > 0.9]
     #night_dets = df.loc[df['tod'] == 'Night']
-    #day_dets = df.loc[df['tod'] == 'Day']
+    day_dets = df.loc[df['tod'] == 'Day']
     #rain_dets = df.loc[df['weather'] == 'rain']
     #sun_dets = df.loc[df['weather'] == 'sunny']
     #scene_dets = df.loc[df['scene_idx'] == 168]
@@ -453,11 +435,12 @@ if __name__ == '__main__':
     #diff2_dets = df.loc[df['difficulty'] == 2]
     df_tp = df.loc[df['difficulty'] != -1]
     df_fp = df.loc[df['difficulty'] == -1]
-
+    df_n  = df.loc[df['tod'] == 'Night']
     #-------------------------
     # Compute AP
     #-------------------------
-    #(mrec,prec,map) = calculate_ap(df,3,gt_path,gt_file)  # 2nd value is # of difficulty types
+    #(mrec,prec,map) = ap_utils.calculate_ap(day_dets,3,data_dir,args.sensor_type,plot=False)  # 2nd value is # of difficulty types
+    #print(map)
     #df = bbdet3d_to_bbdet2d(df,top_crop)
 
     #------------------------
@@ -518,11 +501,11 @@ if __name__ == '__main__':
     #param  = 'all_var'
     #param = 'e_bbox_var,a_bbox_var'
     #param  = 'e_cls_var,a_cls_var'
-    param = 'e_cls_var'
+    param = 'a_bbox_var'
     #vals = ['w1']
     #vals  = ['l1','w1']
-    vals = ['fg','bg']
-    #vals = ['x_c','y_c','l1','w1']
+    #vals = ['fg','bg']
+    vals = ['x_c','y_c']
     #vals = ['w1']
     #vals = ['x_c','y_c','z_c','l2','w2','h','r_y']
     #vals  = ['bg']
@@ -546,8 +529,8 @@ if __name__ == '__main__':
 
     #m_kde = modelling_utils.plot_histo_multivariate_KDE(df,'All',param,vals,min_val=0, plot=False)
     #modelling_utils.plot_roc_curves(df,param,vals,m_kde_tp,m_kde_fp,limiter=10000)
-    plt.legend()
-    plt.show()
+    #plt.legend()
+    #plt.show()
 
     #-------------------------
     # Misc
