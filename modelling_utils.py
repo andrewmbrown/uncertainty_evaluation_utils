@@ -387,30 +387,35 @@ def plot_box_plot(df,col,vals,plot=False):
     return [mean,median,lower_quartile,upper_quartile,lower_whisker,upper_whisker]
 
 #Plot ROC by sweeping density_thresh
-def plot_roc_curves(df,col,vals,m_kde_tp,m_kde_fp,min_val=None,max_val=None,limiter=0):
-    data = extract_columns(df,col,vals)
-    if(limiter != 0):
+def plot_roc_curves(df,col,vals,m_kde_tp,m_kde_fp,min_val=None,max_val=None,num_pts=25,limiter=0):
+    if(limiter != 0 and limiter < len(df.index)):
         print(len(df.index))
         frac = (limiter+0.1)/(len(df.index)+0.1)
         df = df.sample(frac=1)
         df = df.sample(frac=frac)
         print(len(df.index))
+    data = extract_columns(df,col,vals)
     f_a  = []
     hits = []
-    signal_tp = np.asarray(df['difficulty'].to_list(),dtype=np.int32)
-    signal_tp = np.where(signal_tp != -1, True, False)
     if(data is not None):
         np.random.seed(int.from_bytes(os.urandom(4), sys.byteorder))
-        np.random.shuffle(data)
-        if(data.shape[0] > limiter and limiter != 0):
-            data = data[:limiter,:]
+        signal_tp = np.asarray(df['difficulty'].to_list(),dtype=np.int32)
+        signal_tp = np.where(signal_tp != -1, True, False)
         tp_densities = m_kde_tp.pdf(data)
         fp_densities = m_kde_fp.pdf(data)
+        #Attempted filtering
+        tp_max_density = np.max(tp_densities)
+        fp_max_density = np.max(fp_densities)
+        tp_mask = np.where(tp_densities > 0.001*tp_max_density, True, False)
+        fp_mask = np.where(fp_densities > 0.001*fp_max_density, True, False)
+        total_mask = np.bitwise_and(tp_mask,fp_mask)
+        tp_trimmed_density = tp_densities[total_mask]
+        fp_trimmed_density = fp_densities[total_mask]
         if (min_val is None):
-            min_val = np.min(tp_densities-fp_densities)
+            min_val = np.min(tp_trimmed_density-fp_trimmed_density)
         if (max_val is None):
-            max_val = np.max(tp_densities-fp_densities)
-        thresh_list = np.linspace(min_val,max_val,25)
+            max_val = np.max(tp_trimmed_density-fp_trimmed_density)
+        thresh_list = np.linspace(min_val,max_val,num_pts)
         for thresh in thresh_list:
             ratios = find_ratios(df,col,vals,signal_tp,tp_densities,fp_densities,min_thresh=thresh)
             hits.append(ratios[0])
@@ -430,7 +435,7 @@ def classify_dets(df,col,vals,tp_kde,fp_kde,min_thresh=0.0):
     data = extract_columns(df,col,vals)
     tp_densities = tp_kde.pdf(df)
     fp_densities = fp_kde.pdf(df)
-    response_tp = np.where(tp_densities > fp_densities + min_thresh,True,False)
+    response_tp = np.where(tp_densities - fp_densities - min_thresh > 0,True,False)
     response_fp = np.bitwise_not(response_tp)
     return [np.sum(response_tp),np.sum(response_fp)]
 
@@ -487,26 +492,6 @@ def plot_histo_multivariate_KDE(df,plotname,col,vals,min_val=None,max_val=None,p
     ranges = np.linspace(min_val,max_val,bins)
     hist_range = (min_val,max_val)
     
-    #myPDF,axes = fastKDE.pdf(data_arr[0,:],data_arr[1,:])
-    #Extract the axes from the axis list
-    #v1,v2 = axes
-
-    #Plot contours of the PDF should be a set of concentric ellipsoids centered on
-    #(0.1, -300) Comparitively, the y axis range should be tiny and the x axis range
-    #should be large
-    #PP.contour(v1,v2,myPDF)
-    #PP.show()
-
-    #df = pd.DataFrame({'x_c': data_arr[:,0], 'y_c': data_arr[:, 0]})
-    #sns.jointplot(x='x_c',y='y_c', data=df, kind='kde')
-    #scipy_kernel = gaussian_kde(data_arr,bw_method=.035)  # kernel function centered on each datapoint
-    #pdf = scipy_kernel.evaluate(x_list)  # sum all functions together and normalize to obtain pdf
-    #plt.plot(x_list[0,:],pdf)
-    #plt.show()
-    
-
-    #x_mesh = np.meshgrid(x_list[:,0],x_list[:,1])
-    #x_mesh = x_mesh.swapaxes(0,2)
     v_type = ''
     for i in range(0,data_arr.shape[1]):
         v_type = v_type + 'c'
@@ -523,15 +508,6 @@ def plot_histo_multivariate_KDE(df,plotname,col,vals,min_val=None,max_val=None,p
             else:
                 label_vals.append(vals[i])
 
-        #if(num_col == 1):
-        #    pdf_eval = multivariate_kernel.pdf(ranges)
-        #    if(vals is None):
-        #        val_str = ''
-        #    else:
-        #        val_str = ' : {}'.format(vals[0])
-        #    labelname = plotname + val_str
-        #    #plt.plot(ranges,pdf_eval)
-        #    plt.hist(data_arr[:,0],bins=bins,range=(min_val[0],max_val[0]),alpha=0.5,label=labelname,density=True,stacked=True)
         if(num_col == 2):
             x_list  = np.swapaxes(np.asarray(np.meshgrid(ranges[:,0],ranges[:,1])),0,2)
             pdf_eval = multivariate_kernel.pdf(x_list.reshape(-1,num_col))
@@ -568,10 +544,7 @@ def plot_histo_multivariate_KDE(df,plotname,col,vals,min_val=None,max_val=None,p
             plt.title(col)
             
         #plt.show()
-        #x = np.linspace(np.min(data_arr[0,:]),np.max(data_arr[0,:]),len(pdf))
-        #plt.plot(x,pdf,'k')
-        #for count,row in enumerate(data_arr):
-        #    plt.hist(row,bins=200,range=hist_range,alpha=0.5,label=col + ': ' + str(vals[count]),density=True,stacked=True)
+
         print_str = '{} bw values: ['.format(plotname)
         for i in range(0,data_arr.shape[1]):
             print_str += ' {:.3f}'.format(h[i])

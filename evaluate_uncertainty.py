@@ -377,7 +377,7 @@ def get_df(dataset,cache_dir,dets_file,data_dir,sensor_type,limiter=0):
             with open(cache_file, 'wb') as fid:
                 pickle.dump(df, fid, pickle.HIGHEST_PROTOCOL)
             print('df wrote to {}'.format(cache_file))
-        if(limiter != 0):
+        if(limiter != 0 and limiter < len(df.index)):
             print(len(df.index))
             frac = (limiter+0.1)/(len(df.index)+0.1)
             df = df.sample(frac=1)
@@ -397,17 +397,23 @@ if __name__ == '__main__':
     #-------------------------
     if(manual_mode):
         args.root_dir    = os.path.join('/home','mat','thesis')
-        args.sensor_type = 'image'
-        args.dataset     = 'waymo'
+        args.sensor_type = 'lidar'
+        args.dataset     = 'cadc'
         #KITTI LIDAR
         #args.det_file_1  = os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+aug_a_e_uc_4','test_results','results.txt')
         #KITTI IMAGE
         #args.det_file_1  = os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+aug_a_e_uc','test_results','results.txt')
         #WAYMO IMAGE
-        args.det_file_1  = os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+aug_a_e_uc','test_results_2','results.txt')
+        #args.det_file_1  = os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+aug_a_e_uc','test_results_2','results.txt')
+        #WAYMO LIDAR
+        #
+        #CADC IMAGE
+        #args.det_file_1  = os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+aug_a_e_uc','test_results','results.txt')
+        #CADC LIDAR
+        args.det_file_1  = os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+aug_a_e_uc_2','test_results','results.txt')
         args.out_dir     = os.path.join(args.root_dir,'eval_out')
         args.cache_dir   = os.path.join(args.root_dir,'eval_cache')
-        args.data_dir    = os.path.join(args.root_dir,'data2')
+        args.data_dir    = os.path.join(args.root_dir,'data')
     num_scenes = 210
     top_crop = 300
     bot_crop = 30
@@ -428,7 +434,7 @@ if __name__ == '__main__':
     #df    = df.loc[df['confidence'] > 0.5]
     #df   = df.loc[df['confidence'] > 0.9]
     #night_dets = df.loc[df['tod'] == 'Night']
-    day_dets = df.loc[df['tod'] == 'Day']
+    #day_dets = df.loc[df['tod'] == 'Day']
     #rain_dets = df.loc[df['weather'] == 'rain']
     #sun_dets = df.loc[df['weather'] == 'sunny']
     #scene_dets = df.loc[df['scene_idx'] == 168]
@@ -436,7 +442,7 @@ if __name__ == '__main__':
     #diff2_dets = df.loc[df['difficulty'] == 2]
     df_tp = df.loc[df['difficulty'] != -1]
     df_fp = df.loc[df['difficulty'] == -1]
-    df_n  = df.loc[df['tod'] == 'Night']
+    #df_n  = df.loc[df['tod'] == 'Night']
     #-------------------------
     # Compute AP
     #-------------------------
@@ -499,14 +505,14 @@ if __name__ == '__main__':
     #------------------------
     # Mat's Custom Script
     #------------------------
-    param  = 'all_var'
+    #param  = 'all_var'
     #param = 'e_bbox_var,a_bbox_var'
     #param  = 'e_cls_var,a_cls_var'
-    #param = 'a_cls_var'
+    param = 'a_bbox_var'
     #vals = ['w1']
-    #vals  = ['l1','w1']
+    vals  = ['x_c','y_c']
     #vals = ['bg']
-    #vals = ['x_c','y_c','l1','w1']
+    #vals = ['w1']
     #vals = ['w1']
     #vals = ['x_c','y_c','z_c','l2','w2','h','r_y']
     #vals  = ['bg']
@@ -515,9 +521,9 @@ if __name__ == '__main__':
     #vals = ['e_x_c','e_y_c','e_z_c','e_l2','e_w2','e_h','e_r_y','e_fg','e_bg','a_x_c','a_y_c','a_z_c','a_l2','a_w2','a_h','a_r_y','a_fg','a_bg']
     #vals = ['e_fg','e_bg','a_fg','a_bg']
     #vals = ['e_x_c','e_y_c','e_z_c','e_l2','e_w2','e_h','e_r_y','a_x_c','a_y_c','a_z_c','a_l2','a_w2','a_h','a_r_y']
-    vals = ['e_x_c','e_y_c','e_l','e_w','e_fg','e_bg','a_x_c','a_y_c','a_l','a_w','a_fg','a_bg']
+    #vals = ['e_x_c','e_y_c','e_l','e_w','e_fg','e_bg','a_x_c','a_y_c','a_l','a_w','a_fg','a_bg']
     #kstest   = modelling_utils.run_kstest(df_tp,df_fp,param,vals,sum_vals=True)
-    is_summed = False
+    is_summed = True
     kldiv = modelling_utils.run_kldiv(df_tp,df_fp,param,vals,sum_vals=is_summed)
     print('kldiv: {} summed: {}'.format(kldiv,is_summed))
     #jsdiv = modelling_utils.run_jsdiv(df_tp,df_fp,param,vals,sum_vals=False)
@@ -525,11 +531,11 @@ if __name__ == '__main__':
     box_stats = modelling_utils.plot_box_plot(df,param,vals,plot=False)
     print('box_plot: mean: {:.3f} median: {:.3f} [Q1,Q3]: [{:.3f},{:.3f}] [min,max]: [{:.3f},{:.3f}]'.format(box_stats[0],box_stats[1],box_stats[2],box_stats[3],box_stats[4],box_stats[5]))
     #plt.rcParams.update({'font.size': 16})
-    m_kde_fp = modelling_utils.plot_histo_multivariate_KDE(df_fp,'FP',param,vals,min_val=0, plot=False, bins=200)
-    m_kde_tp = modelling_utils.plot_histo_multivariate_KDE(df_tp,'TP',param,vals,min_val=0, plot=False, bins=200)
+    m_kde_fp = modelling_utils.plot_histo_multivariate_KDE(df_fp,'FP',param,vals,min_val=0, plot=True, bins=200)
+    m_kde_tp = modelling_utils.plot_histo_multivariate_KDE(df_tp,'TP',param,vals,min_val=0, plot=True, bins=200)
 
-    m_kde = modelling_utils.plot_histo_multivariate_KDE(df,'All',param,vals,min_val=0, plot=False)
-    modelling_utils.plot_roc_curves(df,param,vals,m_kde_tp,m_kde_fp,limiter=10000)
+    #m_kde = modelling_utils.plot_histo_multivariate_KDE(df,'All',param,vals,min_val=0, plot=False)
+    #modelling_utils.plot_roc_curves(df,param,vals,m_kde_tp,m_kde_fp,limiter=0,num_pts=300)
     plt.legend()
     plt.show()
 
