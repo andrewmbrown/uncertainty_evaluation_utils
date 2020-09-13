@@ -377,12 +377,7 @@ def get_df(dataset,cache_dir,dets_file,data_dir,sensor_type,limiter=0):
             with open(cache_file, 'wb') as fid:
                 pickle.dump(df, fid, pickle.HIGHEST_PROTOCOL)
             print('df wrote to {}'.format(cache_file))
-        if(limiter != 0 and limiter < len(df.index)):
-            print(len(df.index))
-            frac = (limiter+0.1)/(len(df.index)+0.1)
-            df = df.sample(frac=1)
-            df = df.sample(frac=frac)
-            print(len(df.index))
+        df = modelling_utils._apply_limiter(df, limiter)
         return df
 
 """
@@ -398,27 +393,48 @@ if __name__ == '__main__':
     if(manual_mode):
         args.root_dir    = os.path.join('/home','mat','thesis')
         args.sensor_type = 'lidar'
-        args.dataset     = 'cadc'
+        args.dataset     = 'waymo'
         #KITTI LIDAR
         #args.det_file_1  = os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+aug_a_e_uc_4','test_results','results.txt')
         #KITTI IMAGE
         #args.det_file_1  = os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+aug_a_e_uc','test_results','results.txt')
         #WAYMO IMAGE
         #args.det_file_1  = os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+aug_a_e_uc','test_results_2','results.txt')
+        #WAYMO IMAGE DAY
+        #args.det_file_1  = os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'day+aug_a_e_uc','results_day.txt')
+        #WAYMO IMAGE DROPOUT
+        #args.det_file_2  = os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+aug_a_e_uc','test_results_2','dropout_02','d_0_2_results.txt')
+        #args.det_file_2  = os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+aug_a_e_uc','test_results_2','blur_4_0','blur_4_0_results.txt')
+
         #WAYMO LIDAR
-        #
+        args.det_file_1  = os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+a_e_uc_3c','test_results','results.txt')
         #CADC IMAGE
         #args.det_file_1  = os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+aug_a_e_uc','test_results','results.txt')
+        #args.det_file_1  = os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+aug_a_e_uc','test_results_2','results.txt')
+        #args.det_file_1  = os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+aug_a_e_uc','test_results_3','results_3.txt')
         #CADC LIDAR
-        args.det_file_1  = os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+aug_a_e_uc_2','test_results','results.txt')
+        #args.det_file_1  = os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+aug_a_e_uc_2','test_results','results.txt')
         args.out_dir     = os.path.join(args.root_dir,'eval_out')
         args.cache_dir   = os.path.join(args.root_dir,'eval_cache')
-        args.data_dir    = os.path.join(args.root_dir,'data')
+        args.data_dir    = os.path.join(args.root_dir,'data2')
+    test_file_list = []
+    #WAYMO IMAGE TEST FILES
+    #test_file_list.append(os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+aug_a_e_uc','test_results_2','blur_4_0','blur_4_0_results.txt'))
+    #test_file_list.append(os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+aug_a_e_uc','test_results_2','dropout_02','d_0_2_results.txt'))
+    #test_file_list.append(os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+aug_a_e_uc','test_results_2','dropout_04','d_0_4_results.txt'))
+    #test_file_list.append(os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+aug_a_e_uc','test_results_2','fog','fog_results.txt'))
+    #test_file_list.append(os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+aug_a_e_uc','test_results_2','spatter','spatter_results.txt'))
+    #WAYMO_LIDAR_TEST_FILES
+    #test_file_list.append(os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+a_e_uc_3c','test_results','rain_1mm','rain_1mm_results.txt'))
+    #test_file_list.append(os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+a_e_uc_3c','test_results','rain_3mm','rain_3mm_results.txt'))
+    #test_file_list.append(os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+a_e_uc_3c','test_results','rain_5mm','rain_5mm_results.txt'))
+    #test_file_list.append(os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+a_e_uc_3c','test_results','d_0_2_results','d_0_2_results.txt'))
+    #test_file_list.append(os.path.join(args.root_dir,'faster_rcnn_pytorch_multimodal','final_releases',args.sensor_type,args.dataset,'base+a_e_uc_3c','test_results','d_0_4_results','d_0_4_results.txt'))
     num_scenes = 210
     top_crop = 300
     bot_crop = 30
     data_dir = os.path.join(args.data_dir,args.dataset)
-
+    conf_thresh = 0.5
     #-------------------------
     # Init
     #-------------------------
@@ -426,30 +442,151 @@ if __name__ == '__main__':
         gt_file = os.path.join(data_dir,'val','labels','{}_labels.json'.format(args.sensor_type))
     else:
         gt_file = ''
-    df = get_df(args.dataset,args.cache_dir,args.det_file_1,data_dir,args.sensor_type,limiter=100000)
-
+    df = get_df(args.dataset,args.cache_dir,args.det_file_1,data_dir,args.sensor_type,limiter=0)
+    #if(args.det_file_2 is not None):
+    #    df_t = get_df(args.dataset,args.cache_dir,args.det_file_2,data_dir,args.sensor_type,limiter=50000)
+    #    df_t = df_t.loc[df_t['confidence'] > conf_thresh]
     #-------------------------
     # Example filters for data
     #-------------------------
-    #df    = df.loc[df['confidence'] > 0.5]
-    #df   = df.loc[df['confidence'] > 0.9]
-    #night_dets = df.loc[df['tod'] == 'Night']
-    #day_dets = df.loc[df['tod'] == 'Day']
-    #rain_dets = df.loc[df['weather'] == 'rain']
-    #sun_dets = df.loc[df['weather'] == 'sunny']
+    limiter = 100000
+    df    = df.loc[df['confidence'] > conf_thresh]
+    df_orig = df
+    #heavy_extreme_snow = df.loc[((df['snow_level'] == 'extreme') | (df['snow_level'] == 'heavy') | (df['snow_level'] == 'medium'))]
+    #none_light_snow = df.loc[((df['snow_level'] == 'none') | (df['snow_level'] == 'light'))]
+    #df = df.loc[((df['snow_level'] == 'none') | (df['snow_level'] == 'light') | (df['snow_level'] == 'medium'))]
+    #no_cover_df   = df.loc[(df['lens_snow_cover'] == 'None')]
+    #snow_cover_df = df.loc[(df['lens_snow_cover'] == 'Partial')]
+    #df = df.loc[(df['lens_snow_cover'] == 'None')]
+
+
+    day_dets = df.loc[df['tod'] == 'Day']
+    sun_dets = df.loc[df['weather'] == 'sunny']
+    rain_dets = df.loc[df['weather'] == 'rain']
+    night_dets  = df.loc[df['tod'] == 'Night']
+    #scene_idx = np.unique(np.asarray(rain_dets['scene_idx'].to_list()))
     #scene_dets = df.loc[df['scene_idx'] == 168]
     #diff1_dets = df.loc[df['difficulty'] != 2]
     #diff2_dets = df.loc[df['difficulty'] == 2]
+    df = modelling_utils._apply_limiter(df,limiter)
     df_tp = df.loc[df['difficulty'] != -1]
     df_fp = df.loc[df['difficulty'] == -1]
-    #df_n  = df.loc[df['tod'] == 'Night']
+    #df_dd = df.loc[df['tod'] == 'Dawn/Dusk']
+
     #-------------------------
     # Compute AP
     #-------------------------
-    #(mrec,prec,map) = ap_utils.calculate_ap(day_dets,3,data_dir,args.sensor_type,plot=False)  # 2nd value is # of difficulty types
+    
+    #(mrec,prec,map) = ap_utils.calculate_ap(snow_cover_df,3,data_dir,args.sensor_type,plot=False)  # 2nd value is # of difficulty types
     #print(map)
+
     #df = bbdet3d_to_bbdet2d(df,top_crop)
 
+    #-------------------------
+    # Run Ratios/AP testing
+    #-------------------------
+    ap_testing_en = False
+    if(ap_testing_en):
+        param_list  = []
+        vals_list   = []
+        thresh_list = []
+        param_list.append('a_bbox_var')
+        param_list.append('e_bbox_var')
+        param_list.append('a_cls_var')
+        param_list.append('e_cls_var')
+        #param_list.append('e_bbox_var,a_bbox_var')
+        #param_list.append('e_cls_var,a_cls_var')
+        param_list.append('all_var')
+
+        #UC Metrics
+        #vals_list.append(['x_c','y_c','l1','w1'])
+        #vals_list.append(['x_c','y_c','l1','w1'])
+        vals_list.append(['x_c','y_c','z_c','l2','w2','h','r_y'])
+        vals_list.append(['x_c','y_c','z_c','l2','w2','h','r_y'])
+        vals_list.append(['fg','bg'])
+        vals_list.append(['fg','bg'])
+        #vals_list.append(['e_x_c','e_y_c','e_l','e_w','a_x_c','a_y_c','a_l','a_w'])
+        #vals_list.append(['e_x_c','e_y_c','e_z_c','e_l2','e_w2','e_h','e_r_y','a_x_c','a_y_c','a_z_c','a_l2','a_w2','a_h','a_r_y'])
+        vals_list.append(['e_fg','e_bg','a_fg','a_bg'])
+        #vals_list.append(['e_x_c','e_y_c','e_l','e_w','e_fg','e_bg','a_x_c','a_y_c','a_l','a_w','a_fg','a_bg'])
+        vals_list.append(['e_x_c','e_y_c','e_z_c','e_l2','e_w2','e_h','e_r_y','e_fg','e_bg','a_x_c','a_y_c','a_z_c','a_l2','a_w2','a_h','a_r_y','a_fg','a_bg'])
+        #Waymo IMG thresh list 0.7
+        #thresh_list.append(-0.0055)
+        #thresh_list.append(-0.0137)
+        #thresh_list.append(-0.2842)
+        #thresh_list.append(-0.0055)
+        #thresh_list.append(-0.0004)
+        #thresh_list.append(-0.0522)
+        #thresh_list.append(0.00019)
+        #Waymo IMG thresh list 0.5
+        #thresh_list.append(-0.0066)
+        #thresh_list.append(-0.0133)
+        #thresh_list.append(-0.1481)
+        #thresh_list.append(-0.0196)
+        #thresh_list.append(-0.0014)
+        #thresh_list.append(-0.0223)
+        #thresh_list.append(0.00000)
+        #Waymo IMG day thresh list
+        
+        #thresh_list.append(-0.0049)
+        #thresh_list.append(-0.0177)
+        #thresh_list.append(-0.2593)
+        #thresh_list.append(0.05010)
+        #thresh_list.append(-0.0004)
+        #thresh_list.append(-0.0141)
+        #thresh_list.append(0.00089)
+        #Waymo LiDAR all thresh list
+        thresh_list.append(0.00163)
+        thresh_list.append(0.00018)
+        thresh_list.append(-0.1012)
+        thresh_list.append(0.09006)
+        thresh_list.append(0.00000)
+        thresh_list.append(0.00670)
+        thresh_list.append(-0.0002)
+        #(mrec,prec,map) = ap_utils.calculate_ap(df_test,3,data_dir,args.sensor_type,plot=False)  # 2nd value is # of difficulty types
+        #print(map)
+        df_test_list = []
+        df_test_list.append(df)
+        df_test_list.append(sun_dets)
+        df_test_list.append(rain_dets)
+        df_test_list.append(day_dets)
+        df_test_list.append(night_dets)
+        for test_file in test_file_list:
+            df_t = get_df(args.dataset,args.cache_dir,test_file,data_dir,args.sensor_type,limiter=50000)
+            df_t = df_t.loc[df_t['confidence'] > conf_thresh]
+            df_test_list.append(df_t)
+        min_anom_thresh = 0.01
+        test_limiter = 20000
+        kde_list = modelling_utils.cache_kde_models(df,df_tp,df_fp,param_list,vals_list,bins=200)
+        for df_test in df_test_list:
+            df_test = modelling_utils._apply_limiter(df_test,limiter=test_limiter)
+            print('{}'.format('New test stimulus'))
+            for i, param in enumerate(param_list):
+                vals   = vals_list[i]
+                thresh = thresh_list[i]
+                m_kde_tp = kde_list[i][0]
+                m_kde_fp = kde_list[i][1]
+                m_kde    = kde_list[i][2]
+                print('param: {} vals: {} thresh: {}'.format(param,vals,thresh))
+                #m_kde_fp = modelling_utils.plot_histo_multivariate_KDE(df_fp,'FP',param,vals, plot=False, bins=200)
+                #m_kde_tp = modelling_utils.plot_histo_multivariate_KDE(df_tp,'TP',param,vals, plot=False, bins=200)
+                #m_kde    = modelling_utils.plot_histo_multivariate_KDE(df,'ALL',param,vals, plot=False, bins=200)
+                signal_tp = np.where(np.asarray(df_test['difficulty'].to_list()) != -1, True, False)
+                test_var = modelling_utils._col_data_extract(df_test,param,vals)
+                tp_densities = m_kde_tp.pdf(test_var)
+                fp_densities = m_kde_fp.pdf(test_var)
+                all_densities = m_kde.pdf(test_var)
+                response_tp = np.where(tp_densities > fp_densities + thresh,True,False)
+                response_anomaly = np.where(all_densities < min_anom_thresh*np.max(all_densities),True,False)
+                #ratios = modelling_utils.find_ratios(df_test,param,vals,signal_tp,tp_densities,fp_densities,min_thresh=thresh)
+                total_resp = np.bitwise_and(np.bitwise_not(response_tp),response_anomaly)
+                print('TP,FP: \n{}\n{}'.format(np.sum(response_tp),np.sum(np.bitwise_not(response_tp))))
+                #print('Anom: \n{}\n{}'.format(np.sum(response_anomaly),np.sum(np.bitwise_not(response_anomaly))))
+                #print('FP&Anom:\n{}\n{}'.format(np.sum(total_resp),np.sum(np.bitwise_not(total_resp))))
+                #print('ratios: {}'.format(ratios))
+                #print('ratio: {} det-TP: {} det-FP: {}'.format(np.sum(np.bitwise_not(response_tp))/np.sum(response_tp),np.sum(response_tp),np.sum(np.bitwise_not(response_tp))))
+                #print('ratio: {} anomaly: {} norm: {}'.format(np.sum(response_anomaly)/np.sum(np.bitwise_not(response_anomaly)),np.sum(response_anomaly),np.sum(np.bitwise_not(response_anomaly))))
+    
     #------------------------
     # Multivariate KDE generation and ROC curve generation
     #------------------------
@@ -505,17 +642,17 @@ if __name__ == '__main__':
     #------------------------
     # Mat's Custom Script
     #------------------------
+    '''
     #param  = 'all_var'
     #param = 'e_bbox_var,a_bbox_var'
     #param  = 'e_cls_var,a_cls_var'
-    param = 'a_bbox_var'
-    #vals = ['w1']
-    vals  = ['x_c','y_c']
+    param = 'a_cls_var'
+    #vals  = ['h']
     #vals = ['bg']
     #vals = ['w1']
     #vals = ['w1']
     #vals = ['x_c','y_c','z_c','l2','w2','h','r_y']
-    #vals  = ['bg']
+    vals  = ['fg','bg']
     #vals = ['l2','w2','h']
     #Multi-UC val lists
     #vals = ['e_x_c','e_y_c','e_z_c','e_l2','e_w2','e_h','e_r_y','e_fg','e_bg','a_x_c','a_y_c','a_z_c','a_l2','a_w2','a_h','a_r_y','a_fg','a_bg']
@@ -523,22 +660,260 @@ if __name__ == '__main__':
     #vals = ['e_x_c','e_y_c','e_z_c','e_l2','e_w2','e_h','e_r_y','a_x_c','a_y_c','a_z_c','a_l2','a_w2','a_h','a_r_y']
     #vals = ['e_x_c','e_y_c','e_l','e_w','e_fg','e_bg','a_x_c','a_y_c','a_l','a_w','a_fg','a_bg']
     #kstest   = modelling_utils.run_kstest(df_tp,df_fp,param,vals,sum_vals=True)
-    is_summed = True
+    is_summed = False
     kldiv = modelling_utils.run_kldiv(df_tp,df_fp,param,vals,sum_vals=is_summed)
     print('kldiv: {} summed: {}'.format(kldiv,is_summed))
     #jsdiv = modelling_utils.run_jsdiv(df_tp,df_fp,param,vals,sum_vals=False)
     #print('kstest: {} kldiv: {} jsdiv {}'.format(kstest,kldiv,np.sum(jsdiv)))
-    box_stats = modelling_utils.plot_box_plot(df,param,vals,plot=False)
-    print('box_plot: mean: {:.3f} median: {:.3f} [Q1,Q3]: [{:.3f},{:.3f}] [min,max]: [{:.3f},{:.3f}]'.format(box_stats[0],box_stats[1],box_stats[2],box_stats[3],box_stats[4],box_stats[5]))
+    #box_stats = modelling_utils.plot_box_plot(df,param,vals,plot=False)
+    #print('box_plot: mean: {:.3f} median: {:.3f} [Q1,Q3]: [{:.3f},{:.3f}] [min,max]: [{:.3f},{:.3f}]'.format(box_stats[0],box_stats[1],box_stats[2],box_stats[3],box_stats[4],box_stats[5]))
     #plt.rcParams.update({'font.size': 16})
-    m_kde_fp = modelling_utils.plot_histo_multivariate_KDE(df_fp,'FP',param,vals,min_val=0, plot=True, bins=200)
-    m_kde_tp = modelling_utils.plot_histo_multivariate_KDE(df_tp,'TP',param,vals,min_val=0, plot=True, bins=200)
+    #m_kde_fp = modelling_utils.plot_histo_multivariate_KDE(df_fp,'FP',param,vals,min_val=0, plot=True, bins=200)
+    #m_kde_tp = modelling_utils.plot_histo_multivariate_KDE(df_tp,'TP',param,vals,min_val=0, plot=True, bins=200)
 
     #m_kde = modelling_utils.plot_histo_multivariate_KDE(df,'All',param,vals,min_val=0, plot=False)
     #modelling_utils.plot_roc_curves(df,param,vals,m_kde_tp,m_kde_fp,limiter=0,num_pts=300)
-    plt.legend()
-    plt.show()
+    #plt.legend()
+    #plt.show()
+    '''
 
+    #-------------------------
+    # Mat's custom KDE script
+    #-------------------------
+    '''
+    param_list = []
+    for i in range(0,8):
+        param_list.append('e_bbox_var')
+    #param_list.append('e_bbox_var')
+    #param_list.append('a_cls_var')
+    #param_list.append('e_cls_var')
+    #param_list.append('e_bbox_var,a_bbox_var')
+    #param_list.append('e_cls_var,a_cls_var')
+    #param_list.append('all_var')
+    vals_list = []
+
+    #vals_list.append(['x_c','y_c','l1','w1'])
+    #vals_list.append(['x_c','y_c','l1','w1'])
+    #LiDAR contour plots
+    #vals_list.append(['x_c','y_c'])
+    #vals_list.append(['l2','w2'])
+    #vals_list.append(['z_c','h'])
+    #vals_list.append(['x_c','y_c','z_c'])
+    #vals_list.append(['l2','w2','h'])
+    #LiDAR Individual vars
+    vals_list.append(['x_c'])
+    vals_list.append(['y_c'])
+    vals_list.append(['z_c'])
+    vals_list.append(['l2'])
+    vals_list.append(['w2'])
+    vals_list.append(['h'])
+    vals_list.append(['r_y'])
+    vals_list.append(['x_c','y_c','z_c','l2','w2','h','r_y'])
+    #Classification Vars
+    #vals_list.append(['fg'])
+    #vals_list.append(['bg'])
+    #vals_list.append(['fg','bg'])
+    #LiDAR total vars
+    #vals_list.append(['x_c','y_c','z_c','l2','w2','h','r_y'])
+    x = np.linspace(0,1,10)
+    plt.rcParams.update({'font.size': 14})
+    for param, vals in zip(param_list,vals_list):
+        #print('param: {} vals: {}'.format(param,vals))
+        is_summed = True
+        kldiv = modelling_utils.run_kldiv(df_tp,df_fp,param,vals,sum_vals=is_summed)
+        print('kldiv: {} summed: {}'.format(kldiv,is_summed))
+        #m_kde_fp = modelling_utils.plot_histo_multivariate_KDE(df_fp,'FP',param,vals,min_val=0, plot=True, bins=200)
+        #m_kde_tp = modelling_utils.plot_histo_multivariate_KDE(df_tp,'TP',param,vals,min_val=0, plot=True, bins=200)
+        box_stats = modelling_utils.plot_box_plot(df,param,vals,plot=False)
+        print('box_plot: mean: {:.3f} median: {:.3f} [Q1,Q3]: [{:.3f},{:.3f}] [min,max]: [{:.3f},{:.3f}]'.format(box_stats[0],box_stats[1],box_stats[2],box_stats[3],box_stats[4],box_stats[5]))
+
+        #m_kde = modelling_utils.plot_histo_multivariate_KDE(df,'All',param,vals,min_val=0, plot=False)
+        #modelling_utils.plot_roc_curves(df,param,vals,m_kde_tp,m_kde_fp,limiter=10000,num_pts=2000)
+        #plt.legend()
+        #plt.show()
+    '''
+    #-------------------------
+    # Mat's custom KDE/histo plotter
+    #-------------------------
+    custom_plotter = False
+    if(custom_plotter):
+        opt_point_list = []
+        param_list = []
+        param_list.append('a_bbox_var')
+        #param_list.append('e_bbox_var')
+        #param_list.append('a_cls_var')
+        #param_list.append('e_cls_var')
+        #param_list.append('e_bbox_var,a_bbox_var')
+        #param_list.append('e_cls_var,a_cls_var')
+        param_list.append('all_var')
+        vals_list = []
+        vals_list.append(['z_c'])
+        #vals_list.append(['x_c','y_c','l1','w1'])
+        #vals_list.append(['x_c','y_c','z_c','l2','w2','h','r_y'])
+        #vals_list.append(['x_c','y_c','z_c','l2','w2','h','r_y'])
+        #vals_list.append(['fg','bg'])
+        #vals_list.append(['fg','bg'])
+        #vals_list.append(['e_x_c','e_y_c','e_l1','e_w1','a_x_c','a_y_c','a_l1','a_w1'])
+        #vals_list.append(['e_x_c','e_y_c','e_z_c','e_l2','e_w2','e_h','e_r_y','a_x_c','a_y_c','a_z_c','a_l2','a_w2','a_h','a_r_y'])
+        #vals_list.append(['e_fg','e_bg','a_fg','a_bg'])
+        #vals_list.append(['e_x_c','e_y_c','e_l1','e_w1','e_fg','e_bg','a_x_c','a_y_c','a_l1','a_w1','a_fg','a_bg'])
+        #vals_list.append(['e_x_c','e_y_c','e_z_c','e_l2','e_w2','e_h','e_r_y','e_fg','e_bg','a_x_c','a_y_c','a_z_c','a_l2','a_w2','a_h','a_r_y','a_fg','a_bg'])
+        plt.rcParams.update({'font.size': 16})
+        #plt.ylabel('Percentage Object Detected')
+        #plt.xlabel('Percentage False Alarm')
+        #plt.title('Uncertainty Receiver Operating Characteristics')
+        kde_list = []
+        for param, vals in zip(param_list,vals_list):
+            print('param: {} vals: {}'.format(param,vals))
+            m_kde_tp = modelling_utils.plot_histo_multivariate_KDE(df_tp,'TP',param,vals,min_val=0, plot=True, bins=200)
+        plt.legend()
+        plt.show()
+    
+    #-------------------------
+    # Mat's custom ROC script
+    #-------------------------
+    custom_roc_en = True
+    if(custom_roc_en):
+        opt_point_list = []
+        param_list = []
+        param_list.append('a_bbox_var')
+        param_list.append('e_bbox_var')
+        param_list.append('a_cls_var')
+        param_list.append('e_cls_var')
+        #param_list.append('e_bbox_var,a_bbox_var')
+        #param_list.append('e_cls_var,a_cls_var')
+        param_list.append('all_var')
+        vals_list = []
+        #vals_list.append(['x_c','y_c','l1','w1'])
+        #vals_list.append(['x_c','y_c','l1','w1'])
+        vals_list.append(['x_c','y_c','z_c','l2','w2','h','r_y'])
+        vals_list.append(['x_c','y_c','z_c','l2','w2','h','r_y'])
+        vals_list.append(['fg','bg'])
+        vals_list.append(['fg','bg'])
+        #vals_list.append(['e_x_c','e_y_c','e_l1','e_w1','a_x_c','a_y_c','a_l1','a_w1'])
+        #vals_list.append(['e_x_c','e_y_c','e_z_c','e_l2','e_w2','e_h','e_r_y','a_x_c','a_y_c','a_z_c','a_l2','a_w2','a_h','a_r_y'])
+        #vals_list.append(['e_fg','e_bg','a_fg','a_bg'])
+        #vals_list.append(['e_x_c','e_y_c','e_l1','e_w1','e_fg','e_bg','a_x_c','a_y_c','a_l1','a_w1','a_fg','a_bg'])
+        vals_list.append(['e_x_c','e_y_c','e_z_c','e_l2','e_w2','e_h','e_r_y','e_fg','e_bg','a_x_c','a_y_c','a_z_c','a_l2','a_w2','a_h','a_r_y','a_fg','a_bg'])
+        x = np.linspace(0,1,10)
+        plt.rcParams.update({'font.size': 16})
+        plt.plot(x,x,'--',color='black')
+        plt.ylabel('Percentage Object Detected')
+        plt.xlabel('Percentage False Alarm')
+        plt.title('Uncertainty Receiver Operating Characteristics')
+        kde_list = []
+        for param, vals in zip(param_list,vals_list):
+            print('param: {} vals: {}'.format(param,vals))
+            is_summed = False
+            #kldiv = modelling_utils.run_kldiv(df_tp,df_fp,param,vals,sum_vals=is_summed)
+            #print('kldiv: {} summed: {}'.format(kldiv,is_summed))
+            m_kde_fp = modelling_utils.plot_histo_multivariate_KDE(df_fp,'FP',param,vals,min_val=0, plot=False, bins=200)
+            m_kde_tp = modelling_utils.plot_histo_multivariate_KDE(df_tp,'TP',param,vals,min_val=0, plot=False, bins=200)
+            m_kde = modelling_utils.plot_histo_multivariate_KDE(df,'All',param,vals,min_val=0, plot=False, bins=200)
+            modelling_utils.plot_roc_curves(df,param,vals,m_kde_tp,m_kde_fp,limiter=15000,num_pts=1000)
+        plt.legend()
+        plt.show()
+    
+    #-------------------------
+    # Mat's custom ROC TEST script
+    #-------------------------
+    custom_ROC_TEST_EN = False
+    if(custom_ROC_TEST_EN):
+        opt_point_list = []
+        param_list = []
+        param_list.append('a_bbox_var')
+        param_list.append('e_bbox_var')
+        param_list.append('a_cls_var')
+        param_list.append('e_cls_var')
+        param_list.append('e_bbox_var,a_bbox_var')
+        param_list.append('e_cls_var,a_cls_var')
+        param_list.append('all_var')
+        vals_list = []
+        vals_list.append(['x_c','y_c','l1','w1'])
+        vals_list.append(['x_c','y_c','l1','w1'])
+        #vals_list.append(['x_c','y_c','z_c','l2','w2','h','r_y'])
+        #vals_list.append(['x_c','y_c','z_c','l2','w2','h','r_y'])
+        vals_list.append(['fg','bg'])
+        vals_list.append(['fg','bg'])
+        vals_list.append(['e_x_c','e_y_c','e_l1','e_w1','a_x_c','a_y_c','a_l1','a_w1'])
+        #vals_list.append(['e_x_c','e_y_c','e_z_c','e_l2','e_w2','e_h','e_r_y','a_x_c','a_y_c','a_z_c','a_l2','a_w2','a_h','a_r_y'])
+        vals_list.append(['e_fg','e_bg','a_fg','a_bg'])
+        vals_list.append(['e_x_c','e_y_c','e_l1','e_w1','e_fg','e_bg','a_x_c','a_y_c','a_l1','a_w1','a_fg','a_bg'])
+        #vals_list.append(['e_x_c','e_y_c','e_z_c','e_l2','e_w2','e_h','e_r_y','e_fg','e_bg','a_x_c','a_y_c','a_z_c','a_l2','a_w2','a_h','a_r_y','a_fg','a_bg'])
+        x = np.linspace(0,1,10)
+        plt.rcParams.update({'font.size': 14})
+        plt.plot(x,x,'--',color='black')
+        plt.ylabel('Percentage Object Detected')
+        plt.xlabel('Percentage False Alarm')
+        plt.title('Uncertainty Receiver Operating Characteristics')
+        kde_list = []
+        for param, vals in zip(param_list,vals_list):
+            print('param: {} vals: {}'.format(param,vals))
+            is_summed = False
+            #kldiv = modelling_utils.run_kldiv(df_tp,df_fp,param,vals,sum_vals=is_summed)
+            #print('kldiv: {} summed: {}'.format(kldiv,is_summed))
+            m_kde_fp = modelling_utils.plot_histo_multivariate_KDE(df_fp,'FP',param,vals,min_val=0, plot=False, bins=200)
+            m_kde_tp = modelling_utils.plot_histo_multivariate_KDE(df_tp,'TP',param,vals,min_val=0, plot=False, bins=200)
+            m_kde = modelling_utils.plot_histo_multivariate_KDE(df,'All',param,vals,min_val=0, plot=False, bins=200)
+            kde_list.append([m_kde_tp,m_kde_fp,m_kde])
+            max_pfa = 0.1
+            opt_point, opt_ratio = modelling_utils.get_roc_opt_point(df,param,vals,m_kde_tp,m_kde_fp,limiter=15000,num_pts=1000, max_pfa=max_pfa)
+            opt_point_list.append(opt_point)
+            print('optimal ROC point for max pfa {}: {}, Ratio: {}'.format(max_pfa,opt_point,opt_ratio))
+        
+        #Optimal point operation of nominal KDE distributions
+        #Testing on df_test (can be any subset of data, or even from a different detector!)
+        df_test_list = []
+        df_test_list.append(df_orig)
+        #df_test_list.append(no_cover_df)
+        #df_test_list.append(snow_cover_df)
+        df_test_list.append(none_light_snow)
+        df_test_list.append(heavy_extreme_snow)
+        #df_test_list.append(sun_dets)
+        #df_test_list.append(rain_dets)
+        #df_test_list.append(day_dets)
+        #df_test_list.append(night_dets)
+        #df_test_list.append(medium_snow)
+        #for test_file in test_file_list:
+        #    df_t = get_df(args.dataset,args.cache_dir,test_file,data_dir,args.sensor_type,limiter=50000)
+        #    df_t = df_t.loc[df_t['confidence'] > conf_thresh]
+        #    df_test_list.append(df_t)
+        #df_test = night_dets
+        min_anom_thresh = 0.01
+        test_limiter = 10000
+        for df_test in df_test_list:
+            df_test = modelling_utils._apply_limiter(df_test,test_limiter)
+            print('{}'.format('New test stimulus'))
+            for i, param in enumerate(param_list):
+                vals = vals_list[i]
+                opt_point = opt_point_list[i]
+                m_kde_tp = kde_list[i][0]
+                m_kde_fp = kde_list[i][1]
+                m_kde    = kde_list[i][2]
+                print('param: {}'.format(param))
+                #print('param: {} vals: {} thresh: {}'.format(param,vals,opt_point))
+                #m_kde_fp = modelling_utils.plot_histo_multivariate_KDE(df_fp,'FP',param,vals, plot=False, bins=200)
+                #m_kde_tp = modelling_utils.plot_histo_multivariate_KDE(df_tp,'TP',param,vals, plot=False, bins=200)
+                #m_kde    = modelling_utils.plot_histo_multivariate_KDE(df,'ALL',param,vals, plot=False, bins=200)
+                signal_tp = np.where(np.asarray(df_test['difficulty'].to_list()) != -1, True, False)
+                test_var = modelling_utils._col_data_extract(df_test,param,vals)
+                tp_densities = m_kde_tp.pdf(test_var)
+                fp_densities = m_kde_fp.pdf(test_var)
+                all_densities = m_kde.pdf(test_var)
+                response_tp = np.where(tp_densities > fp_densities + opt_point,True,False)
+                response_anomaly = np.where(all_densities < min_anom_thresh*np.max(all_densities),True,False)
+                ratios = modelling_utils.find_ratios(df_test,param,vals,signal_tp,tp_densities,fp_densities,min_thresh=opt_point)
+                #print('ratios: {}'.format(ratios))
+                total_resp = np.bitwise_and(np.bitwise_not(response_tp),response_anomaly)
+                print('TP,FP:\n{}\n{}'.format(np.sum(response_tp),np.sum(np.bitwise_not(response_tp))))
+                #print('Anom:\n{}\n{}'.format(np.sum(response_anomaly),np.sum(np.bitwise_not(response_anomaly))))
+                #print('FP&Anom:\n{}\n{}'.format(np.sum(total_resp),np.sum(np.bitwise_not(total_resp))))
+                #print('ratio: {:.3f} det-TP: {} det-FP: {}'.format(np.sum(np.bitwise_not(response_tp))/np.sum(response_tp),np.sum(response_tp),np.sum(np.bitwise_not(response_tp))))
+                #print('ratio: {:.3f} anomaly: {} norm: {}'.format(np.sum(response_anomaly)/np.sum(np.bitwise_not(response_anomaly)),np.sum(response_anomaly),np.sum(np.bitwise_not(response_anomaly))))
+            
+        #plt.legend()
+        #plt.show()
+    
     #-------------------------
     # Misc
     #-------------------------

@@ -386,6 +386,79 @@ def plot_box_plot(df,col,vals,plot=False):
     lower_whisker = data[data>=lower_quartile-1.5*iqr].min()
     return [mean,median,lower_quartile,upper_quartile,lower_whisker,upper_whisker]
 
+def get_roc_opt_point(df,col,vals,m_kde_tp,m_kde_fp,num_pts=10000,limiter=0,max_pfa=1.0):
+    if(limiter != 0 and limiter < len(df.index)):
+        print(len(df.index))
+        frac = (limiter+0.1)/(len(df.index)+0.1)
+        df = df.sample(frac=1)
+        df = df.sample(frac=frac)
+        print(len(df.index))
+    data = extract_columns(df,col,vals)
+    f_a  = []
+    hits = []
+    opt_point = -1
+    if(data is not None):
+        #np.random.seed(int.from_bytes(os.urandom(4), sys.byteorder))
+        signal_tp = np.asarray(df['difficulty'].to_list(),dtype=np.int32)
+        signal_tp = np.where(signal_tp != -1, True, False)
+        tp_densities = m_kde_tp.pdf(data)
+        fp_densities = m_kde_fp.pdf(data)
+        #Normalize densities
+        total_max = np.max(tp_densities + fp_densities)
+        tp_densities = tp_densities/total_max
+        fp_densities = fp_densities/total_max
+        #Attempted filtering
+        tp_max_density = np.max(tp_densities)
+        fp_max_density = np.max(fp_densities)
+        tp_mask = np.where(tp_densities > 0.0001*tp_max_density, True, False)
+        fp_mask = np.where(fp_densities > 0.001*fp_max_density, True, False)
+        total_mask = np.bitwise_and(tp_mask,fp_mask)
+        tp_trimmed_density = tp_densities[total_mask]
+        fp_trimmed_density = fp_densities[total_mask]
+        #df_tp = df.loc[signal_tp]
+        #df_fp = df.loc[np.bitwise_not(signal_tp)]
+        df_tp = df.loc[(total_mask & signal_tp)]
+        df_fp = df.loc[(total_mask & np.bitwise_not(signal_tp))]
+        kldiv_trimmed = run_kldiv(df_tp,df_fp,col,vals,sum_vals=False)
+        #print('trimmed kldiv: {} '.format(kldiv_trimmed))
+        min_val = np.min(tp_trimmed_density-fp_trimmed_density) - np.mean(np.abs(tp_trimmed_density-fp_trimmed_density))
+        max_val = np.max(tp_trimmed_density-fp_trimmed_density)  #+ np.mean(np.abs(tp_trimmed_density-fp_trimmed_density))
+        print('min_val: {:.2f} max_val {:.2f}'.format(min_val, max_val))
+        thresh_list = np.linspace(min_val,max_val,num_pts)
+        #print('threshlist')
+        #print(thresh_list)
+        opt_point = thresh_list[0]
+        opt_ratio = 0
+        for thresh in thresh_list:
+            ratios = find_ratios(df,col,vals,signal_tp,tp_densities,fp_densities,min_thresh=thresh)
+            hits.append(ratios[0])
+            f_a.append(ratios[2])
+            if(ratios[2] < max_pfa):
+                opt_point = thresh
+                opt_ratio = ratios
+        plt.plot(f_a,hits,linewidth=2.0,label='col {} vals {}'.format(col,vals))
+    return opt_point, opt_ratio
+
+def _apply_limiter(df,limiter):
+    if(limiter != 0 and limiter < len(df.index)):
+        print(len(df.index))
+        frac = (limiter+0.1)/(len(df.index)+0.1)
+        df = df.sample(frac=1)
+        df = df.sample(frac=frac)
+        print(len(df.index))
+    return df
+
+def cache_kde_models(df,df_tp,df_fp,param_list,vals_list,bins=200):
+    #Pre-cache kde list
+    kde_list = []
+    for i, param in enumerate(param_list):
+        vals   = vals_list[i]
+        m_kde_fp = plot_histo_multivariate_KDE(df_fp,'FP',param,vals, plot=False, bins=bins)
+        m_kde_tp = plot_histo_multivariate_KDE(df_tp,'TP',param,vals, plot=False, bins=bins)
+        m_kde    = plot_histo_multivariate_KDE(df,'ALL',param,vals, plot=False, bins=bins)
+        kde_list.append([m_kde_tp,m_kde_fp,m_kde])
+    return kde_list
+
 #Plot ROC by sweeping density_thresh
 def plot_roc_curves(df,col,vals,m_kde_tp,m_kde_fp,min_val=None,max_val=None,num_pts=25,limiter=0):
     if(limiter != 0 and limiter < len(df.index)):
@@ -403,25 +476,37 @@ def plot_roc_curves(df,col,vals,m_kde_tp,m_kde_fp,min_val=None,max_val=None,num_
         signal_tp = np.where(signal_tp != -1, True, False)
         tp_densities = m_kde_tp.pdf(data)
         fp_densities = m_kde_fp.pdf(data)
+        #Normalize densities
+        total_max = np.max(tp_densities + fp_densities)
+        tp_densities = tp_densities/total_max
+        fp_densities = fp_densities/total_max
         #Attempted filtering
         tp_max_density = np.max(tp_densities)
         fp_max_density = np.max(fp_densities)
-        tp_mask = np.where(tp_densities > 0.001*tp_max_density, True, False)
+        tp_mask = np.where(tp_densities > 0.0001*tp_max_density, True, False)
         fp_mask = np.where(fp_densities > 0.001*fp_max_density, True, False)
         total_mask = np.bitwise_and(tp_mask,fp_mask)
         tp_trimmed_density = tp_densities[total_mask]
         fp_trimmed_density = fp_densities[total_mask]
+        #df_tp = df.loc[signal_tp]
+        #df_fp = df.loc[np.bitwise_not(signal_tp)]
+        df_tp = df.loc[(total_mask & signal_tp)]
+        df_fp = df.loc[(total_mask & np.bitwise_not(signal_tp))]
+        kldiv_trimmed = run_kldiv(df_tp,df_fp,col,vals,sum_vals=False)
+        #print('trimmed kldiv: {} '.format(kldiv_trimmed))
         if (min_val is None):
-            min_val = np.min(tp_trimmed_density-fp_trimmed_density)
+            min_val = np.min(tp_trimmed_density-fp_trimmed_density) - np.mean(np.abs(tp_trimmed_density-fp_trimmed_density))
         if (max_val is None):
-            max_val = np.max(tp_trimmed_density-fp_trimmed_density)
+            max_val = np.max(tp_trimmed_density-fp_trimmed_density)  #+ np.mean(np.abs(tp_trimmed_density-fp_trimmed_density))
+        print('min_val: {:.2f} max_val {:.2f}'.format(min_val, max_val))
         thresh_list = np.linspace(min_val,max_val,num_pts)
+        #print(thresh_list)
         for thresh in thresh_list:
             ratios = find_ratios(df,col,vals,signal_tp,tp_densities,fp_densities,min_thresh=thresh)
             hits.append(ratios[0])
             f_a.append(ratios[2])
-        plt.plot(f_a,hits,label='col {} vals {}'.format(col,vals))
-        print('auc: {}'.format(auc(f_a,hits)))
+        plt.plot(f_a,hits,linewidth=2.0,label='col {} vals {}'.format(col,vals))
+        print('auc: {:.3f}'.format(auc(f_a,hits)))
     else:
         return None
 
@@ -486,7 +571,7 @@ def plot_histo_multivariate_KDE(df,plotname,col,vals,min_val=None,max_val=None,p
     else:
         min_val = np.ones((data_arr.shape[1]))*min_val
     if(max_val is None):
-        max_val = np.ones((data_arr.shape[1]))*np.max(data_arr)
+        max_val = np.ones((data_arr.shape[1]))*np.max(data_arr)*2
     else:
         max_val = np.ones((data_arr.shape[1]))*max_val
     ranges = np.linspace(min_val,max_val,bins)
@@ -507,7 +592,21 @@ def plot_histo_multivariate_KDE(df,plotname,col,vals,min_val=None,max_val=None,p
                 label_vals.append('w')
             else:
                 label_vals.append(vals[i])
-
+        if(num_col == 1):
+            if(plotname == 'TP'):
+                plotname = 'True Positives'
+            elif(plotname == 'FP'):
+                plotname = 'False Positives'
+            for i in range(0,data_arr.shape[1]):
+                labelname = plotname + ': ' + label_vals[i]
+                x_list  = np.linspace(min_val[i],max_val[i],100)
+                plt.hist(data_arr[:,i],bins=200,range=(min_val[i],max_val[i]),alpha=0.5,label=labelname,density=True,stacked=True) 
+                var_vals = multivariate_kernel.pdf(x_list)
+                plt.plot(x_list,var_vals)
+            plt.xlabel('\u03C3^2')
+            plt.ylabel('density')
+            plt.title(col)
+            #plt.title('aleatoric regression uncertainty - Histogram and respective KDE')
         if(num_col == 2):
             x_list  = np.swapaxes(np.asarray(np.meshgrid(ranges[:,0],ranges[:,1])),0,2)
             pdf_eval = multivariate_kernel.pdf(x_list.reshape(-1,num_col))
@@ -549,7 +648,7 @@ def plot_histo_multivariate_KDE(df,plotname,col,vals,min_val=None,max_val=None,p
         for i in range(0,data_arr.shape[1]):
             print_str += ' {:.3f}'.format(h[i])
         print_str += ']'
-        print(print_str)
+        #print(print_str)
     return multivariate_kernel
 
 def column_value_to_index(val):

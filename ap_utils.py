@@ -60,13 +60,15 @@ def count_cadc_npos(df,data_dir,sensor_type):
     labels = os.listdir(cadc_gt_path)
     frame_idx = np.asarray(df['frame_idx'])
     unique_idx = np.unique(np.sort(frame_idx), axis=0)
-
+    label_idx = []
     for label in labels:
-        label_int = int(label.replace('.txt',''))
+        label_idx.append(int(label.replace('.txt','')))
+    label_idx = np.sort(np.asarray(label_idx))
+    for i, label in enumerate(label_idx):
         if det_idx == len(unique_idx):
             break
-        if (unique_idx[det_idx] == label_int):
-            npos += cadc_label_npos(data_dir+'/val',label.replace('.txt',''))
+        if (unique_idx[det_idx] == label):
+            npos += cadc_label_npos(cadc_gt_path,labels[i])
             det_idx += 1
     
     return npos
@@ -87,7 +89,7 @@ def cadc_label_npos(path,filename):
     """
 
     count = np.zeros(3)
-    label_file = os.path.join(path,filename+'.txt')
+    label_file = os.path.join(path,filename)
     with open(label_file,'r') as file:
         for line in file:
             line_arr = line.split(' ')
