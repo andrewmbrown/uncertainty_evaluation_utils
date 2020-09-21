@@ -735,7 +735,7 @@ if __name__ == '__main__':
     #-------------------------
     # Mat's custom KDE/histo plotter
     #-------------------------
-    custom_plotter = False
+    custom_plotter = True
     if(custom_plotter):
         opt_point_list = []
         param_list = []
@@ -745,9 +745,9 @@ if __name__ == '__main__':
         #param_list.append('e_cls_var')
         #param_list.append('e_bbox_var,a_bbox_var')
         #param_list.append('e_cls_var,a_cls_var')
-        param_list.append('all_var')
+        #param_list.append('all_var')
         vals_list = []
-        vals_list.append(['z_c'])
+        vals_list.append(['x_c'])
         #vals_list.append(['x_c','y_c','l1','w1'])
         #vals_list.append(['x_c','y_c','z_c','l2','w2','h','r_y'])
         #vals_list.append(['x_c','y_c','z_c','l2','w2','h','r_y'])
@@ -766,13 +766,14 @@ if __name__ == '__main__':
         for param, vals in zip(param_list,vals_list):
             print('param: {} vals: {}'.format(param,vals))
             m_kde_tp = modelling_utils.plot_histo_multivariate_KDE(df_tp,'TP',param,vals,min_val=0, plot=True, bins=200)
+            m_kde_tp = modelling_utils.plot_histo_multivariate_KDE(df_fp,'FP',param,vals,min_val=0, plot=True, bins=200)
         plt.legend()
         plt.show()
     
     #-------------------------
     # Mat's custom ROC script
     #-------------------------
-    custom_roc_en = True
+    custom_roc_en = False
     if(custom_roc_en):
         opt_point_list = []
         param_list = []

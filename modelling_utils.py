@@ -571,12 +571,12 @@ def plot_histo_multivariate_KDE(df,plotname,col,vals,min_val=None,max_val=None,p
     else:
         min_val = np.ones((data_arr.shape[1]))*min_val
     if(max_val is None):
-        max_val = np.ones((data_arr.shape[1]))*np.max(data_arr)*2
+        max_val = np.ones((data_arr.shape[1]))*np.max(data_arr)/2
+        if(num_col == 2):
+            max_val = max_val*2
     else:
         max_val = np.ones((data_arr.shape[1]))*max_val
     ranges = np.linspace(min_val,max_val,bins)
-    hist_range = (min_val,max_val)
-    
     v_type = ''
     for i in range(0,data_arr.shape[1]):
         v_type = v_type + 'c'
@@ -607,7 +607,7 @@ def plot_histo_multivariate_KDE(df,plotname,col,vals,min_val=None,max_val=None,p
             plt.ylabel('density')
             plt.title(col)
             #plt.title('aleatoric regression uncertainty - Histogram and respective KDE')
-        if(num_col == 2):
+        elif(num_col == 2):
             x_list  = np.swapaxes(np.asarray(np.meshgrid(ranges[:,0],ranges[:,1])),0,2)
             pdf_eval = multivariate_kernel.pdf(x_list.reshape(-1,num_col))
             pdf_eval = pdf_eval.reshape(bins,bins)
