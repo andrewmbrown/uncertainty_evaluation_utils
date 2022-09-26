@@ -12,10 +12,7 @@ The general flow of this script is:
 Usage: To use this repository (FULLY) two files are needed:
         1. text file specifying model output with uncertainty values (a_bbox_var, a_cls_var ...) 
         2. A labels file specifying extra info (such as time of day) (this file is optional) 
-        
-Realistically, this repository should be used as a helper library for somebody preforming post-processing. This script was customized 
-for Mat and I, so it would be difficult to implement the entire script. 
-Use this script as a template for performing (histogram plotting, PDF curve fititng, Average Precison calculation, contour plotting, Kernel Density Estimation)
+       
 
-If somebody stumbles upon this repo and has questions, message me on github or email me (andrew.brown.csf@gmail.com) 
+If somebody stumbles upon this repo and has questions, message me on github or email me (andrewm.brown@mail.utoronto.ca) 
 Thanks! 
